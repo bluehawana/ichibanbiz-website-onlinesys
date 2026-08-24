@@ -11,6 +11,10 @@
  */
 'use strict';
 
+// All times (opening hours, pickup slots, bookings) are restaurant-local.
+// Pin the process to the restaurant's timezone no matter where the server runs.
+process.env.TZ = process.env.RESTAURANT_TZ || 'Europe/Stockholm';
+
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
