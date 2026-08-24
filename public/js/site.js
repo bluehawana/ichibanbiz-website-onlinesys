@@ -15,7 +15,7 @@
   }
 
   // Opening hours: highlight today's row + show today's hours in the hero.
-  const HOURS = { 1: '11:00–20:00', 2: '11:00–20:00', 3: '11:00–20:00', 4: '11:00–20:00', 5: '11:00–21:00', 6: '12:00–21:00', 0: '15:00–21:00' };
+  const HOURS = { 1: '11:00–20:00', 2: '11:00–20:00', 3: '11:00–20:00', 4: '11:00–20:00', 5: '11:00–21:00', 6: '13:00–21:00', 0: '15:00–21:00' };
   const dow = new Date().getDay();
   const todayEl = document.getElementById('today-hours');
   if (todayEl) todayEl.textContent = HOURS[dow];

@@ -89,15 +89,15 @@
         <p class="muted" style="font-size:0.92rem;margin-bottom:0.9rem">${lang === 'en' ? 'Enjoyed your food? A Google review means a lot to us!' : 'Smakade det bra? Ett omdöme på Google betyder mycket för oss!'}</p>
         <a class="review-cta" href="${window.__reviewUrl}" target="_blank" rel="noopener" style="font-size:0.92rem;padding:0.65rem 1.3rem"><span class="g">G</span> ${lang === 'en' ? 'Review us on Google' : 'Lämna ett omdöme'}</a>
       </div>` : ''}
-      <p class="form-note" style="margin-top:1.2rem">Södra Vägen 91, Göteborg · <a href="tel:+4631831786" style="color:var(--aka)">031-83 17 86</a><br>${L.save}</p>`;
+      <p class="form-note" style="margin-top:1.2rem">Södra Vägen 91, Göteborg · <a href="tel:+4631831786" style="color:var(--aka-ink)">031-83 17 86</a><br>${L.save}</p>`;
   }
   function load() {
     fetch(`/api/orders/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`)
       .then((r) => { if (!r.ok) throw 0; return r.json(); })
       .then(render)
-      .catch(() => { card.innerHTML = '<p class="muted">Beställningen hittades inte. <a href="/bestall" style="color:var(--aka)">Gör en ny beställning</a></p>'; });
+      .catch(() => { card.innerHTML = '<p class="muted">Beställningen hittades inte. <a href="/bestall" style="color:var(--aka-ink)">Gör en ny beställning</a></p>'; });
   }
-  if (!id || !token) { card.innerHTML = '<p class="muted">Ogiltig länk. <a href="/bestall" style="color:var(--aka)">Till beställningen</a></p>'; return; }
+  if (!id || !token) { card.innerHTML = '<p class="muted">Ogiltig länk. <a href="/bestall" style="color:var(--aka-ink)">Till beställningen</a></p>'; return; }
   fetch('/api/config').then((r) => r.json()).then((cfg) => { window.__reviewUrl = cfg.reviewUrl; load(); }).catch(load);
   let fast = setInterval(() => { if (window.__pending) load(); }, 4000);   // while approving in Swish
   setInterval(load, 20000);

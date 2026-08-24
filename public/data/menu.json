@@ -1,6 +1,6 @@
 {
   "currency": "kr",
-  "note": "Serveringstider: mån–tor 11:00–20:00, fre 11:00–21:00, lör 12:00–21:00, sön 15:00–21:00",
+  "note": "Serveringstider: mån–tor 11:00–20:00, fre 11:00–21:00, lör 13:00–21:00, sön 15:00–21:00",
   "categories": [
     {
       "id": "forratter",
@@ -1292,5 +1292,5 @@
       "name_en": "Extras"
     }
   ],
-  "note_en": "Serving hours: Mon–Thu 11:00–20:00, Fri 11:00–21:00, Sat 12:00–21:00, Sun 15:00–21:00"
+  "note_en": "Serving hours: Mon–Thu 11:00–20:00, Fri 11:00–21:00, Sat 13:00–21:00, Sun 15:00–21:00"
 }
