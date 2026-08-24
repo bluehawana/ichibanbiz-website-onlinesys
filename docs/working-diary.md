@@ -79,3 +79,64 @@ restaurant that wants off Wix.
 3. Cutover: point the Cloudflare A record at 94.72.141.71, switch nginx to
    443/TLS, set `BASE_URL=https://ichiban.biz`, update the Google Business
    Profile reservation link to `/boka` — then cancel Wix.
+
+## 2026-08-24 (evening) — Brand lettering like the printed menu, and the phone padding bug
+
+**What was wrong.** The owner sent the logo and a crop of the printed menu and
+asked for the name on the site to match: chalk-pen hand lettering, not the
+engraved Fredericka face we had. Same message carried two real defects: on
+phones the whole hero sat flush against the left edge with no padding
+("amateur level"), and on mid-width desktops the intro paragraph ran straight
+through the vertical kanji on the hero's right edge.
+
+**Font forensics.** Rendered the samples against every candidate on this Mac:
+the logo's "ICHIBAN" is Apple's **Chalkduster**, the menu body is
+**Chalkboard SE Bold**, "SUSHI" is a heavy Arial/Helvetica in red. Both Apple
+faces ship with macOS/iOS but their licence forbids embedding them on a
+website — which is the real reason the site never matched the menu.
+
+**What got built.**
+- *Wordmark as an image.* `public/assets/img/site/wordmark.png` — "ICHIBAN /
+  SUSHI" rendered with the real Chalkduster at 3× (21 KB, transparent),
+  laid out like the logo. Rasterising is allowed (it's how the printed menu
+  exists); embedding the font file is not. Replaces the text name in the
+  header and footer on all seven pages; the "Göteborg · Södra Vägen 91"
+  sub-line under the name went away with it — the address is in the hero
+  meta and footer already.
+- *Local-first font stack.* `--font-display: "Chalkduster", "Cabin Sketch"`
+  and a new `--font-hand: "Chalkboard SE", "Chalkboard", "Gochi Hand"`.
+  iPhones, iPads and Macs render the genuine faces; Android/Windows get the
+  closest Google Fonts (Cabin Sketch 700 for the rough caps, Gochi Hand for
+  the marker handwriting — picked from a side-by-side render sheet).
+  `--font-hand` is applied to `.lead` taglines and the dish/menu-line
+  descriptions, mirroring how the printed menu uses Chalkboard for item text.
+  Fredericka the Great dropped from the Google Fonts link.
+- *The padding bug.* `.hero .inner { padding: 7rem 0 6rem }` out-ranked
+  `.wrap`'s `0 22px` and zeroed the side padding — invisible on desktop
+  because the centred max-width hides it. Now `padding-block` only. Also:
+  `padding-right: clamp(4.5rem, 9vw, 8rem)` above 700px keeps the copy clear
+  of the tategaki; shorter hero padding and tighter `»DEN BÄSTA«` tracking on
+  phones.
+
+**Verified (actually).** Headless-Chrome screenshots at 390px (via a 390px
+iframe host page — headless clamps narrow windows wider, which produced a
+misleading first shot) and 1280px, for the home, menu and order pages, in
+both the real-font and fallback-font modes. `node --test`: 15 pass, 0 fail.
+Not checked on a physical phone.
+
+**Lesson recorded.** Earlier in the day the owner was told things "passed
+every test" when the phone layout had never been looked at. Rule now: never
+claim tests passed or mobile verified unless the run/screenshot happened in
+that session, and say what wasn't checked.
+
+**Swish, corrected.** An earlier grep with a quoting bug claimed Swish wasn't
+in the codebase. It is (Swish Handel, `server/server.js`, covered by tests),
+just disabled: needs `SWISH_PAYEE_ALIAS` + `SWISH_CERT`/`SWISH_KEY` from the
+bank's Swish Handel agreement in `.env` on the VPS. Number alone does nothing.
+
+**Next steps.**
+1. Owner checks the deployed site on their own phone and against the printed
+   menu; adjust wordmark size/red if needed.
+2. Screenshot-sweep boka/om/integritet at phone width (not done this pass).
+3. Unchanged from before: Swish Handel from the bank, the 10 kr Stripe test,
+   DNS cutover, cancel Wix.
