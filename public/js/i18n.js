@@ -11,7 +11,7 @@
     'Göteborg · Södra Vägen 91': 'Gothenburg · Södra Vägen 91',
     'Integritetspolicy': 'Privacy policy', 'Till startsidan': 'Back to start',
     // hero & home
-    'Färsk sushi, lagad med omsorg': 'Fresh sushi, made with care',
+    'Göteborgs godaste sushi, nära Liseberg': 'Gothenburg\'s tastiest sushi, near Liseberg',
     'Se hela menyn': 'View full menu', 'Öppet idag': 'Open today', 'Adress': 'Address', 'Telefon': 'Phone',
     'Populärast just nu': 'Most popular right now', 'Husets favoriter': 'House favourites',
     'Lax poké': 'Salmon poké', '12 bitar sushi': '12 pieces sushi',
