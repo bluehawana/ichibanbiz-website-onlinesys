@@ -54,6 +54,7 @@
     },
   };
   function render(o) {
+    window.__pending = o.status === 'pending_payment';
     const lang = (window.I18N && window.I18N.lang) === 'en' ? 'en' : 'sv';
     const dinein = o.serviceType === 'dinein';
     const L = lang === 'en'
@@ -62,8 +63,13 @@
     let st = STATUS[lang][o.status] || STATUS[lang].new;
     if (dinein && o.status === 'accepted') st = lang === 'en' ? ['Confirmed — your table is reserved', 'The kitchen preps your food for your arrival time.'] : ['Bekräftad — ert bord är reserverat', 'Köket förbereder maten till er ankomsttid.'];
     if (dinein && o.status === 'ready') st = lang === 'en' ? ['Everything is ready — welcome!', 'Your table is set.'] : ['Allt är framdukat — välkomna!', 'Ert bord står redo.'];
+    if (o.status === 'pending_payment' && o.paymentMethod === 'swish') {
+      st = lang === 'en'
+        ? ['Approve in the Swish app', 'We sent a payment request to your phone — open Swish and approve. This page updates automatically.']
+        : ['Godkänn i Swish-appen', 'Vi har skickat en betalförfrågan till din mobil — öppna Swish och godkänn. Sidan uppdateras automatiskt.'];
+    }
     card.innerHTML = `
-      <div class="big">${o.status === 'ready' ? '🍣' : o.status === 'cancelled' ? '✕' : '✔'}</div>
+      <div class="big">${o.status === 'pending_payment' ? '📲' : o.status === 'ready' ? '🍣' : o.status === 'cancelled' ? '✕' : '✔'}</div>
       <p class="kicker">${L.nr}</p>
       <h1 style="font-size:3rem">#${o.number}</h1>
       <span class="status-pill ${esc(o.status)}">${st[0]}</span>
@@ -92,6 +98,7 @@
   }
   if (!id || !token) { card.innerHTML = '<p class="muted">Ogiltig länk. <a href="/bestall" style="color:var(--aka)">Till beställningen</a></p>'; return; }
   fetch('/api/config').then((r) => r.json()).then((cfg) => { window.__reviewUrl = cfg.reviewUrl; load(); }).catch(load);
+  let fast = setInterval(() => { if (window.__pending) load(); }, 4000);   // while approving in Swish
   setInterval(load, 20000);
 })();
 </script>

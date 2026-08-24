@@ -11,10 +11,35 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const PORT = 3910 + Math.floor(Math.random() * 50);
+const MOCK_SWISH_PORT = PORT + 100;
 const B = `http://localhost:${PORT}`;
 const WEBHOOK_SECRET = 'whsec_citest_' + crypto.randomBytes(8).toString('hex');
 let server;
 let tmpData;
+
+// ---- mock Swish Handel API: PUT creates a request, GET reports its status ----
+const swishState = new Map(); // uuid -> {status, payerAlias, amount}
+const swishMock = require('node:http').createServer((req, res) => {
+  let body = '';
+  req.on('data', (c) => (body += c));
+  req.on('end', () => {
+    const put = req.url.match(/\/api\/v2\/paymentrequests\/([A-F0-9]+)$/);
+    const get = req.url.match(/\/api\/v1\/paymentrequests\/([A-F0-9]+)$/);
+    const refund = req.url.match(/\/api\/v2\/refunds\/([A-F0-9]+)$/);
+    if (req.method === 'PUT' && put) {
+      const data = JSON.parse(body);
+      swishState.set(put[1], { status: 'CREATED', payerAlias: data.payerAlias, amount: data.amount });
+      res.writeHead(201); return res.end();
+    }
+    if (req.method === 'GET' && get && swishState.has(get[1])) {
+      const st = swishState.get(get[1]);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ id: get[1], status: st.status, paymentReference: 'SWREF' + get[1].slice(0, 8), payerAlias: st.payerAlias }));
+    }
+    if (req.method === 'PUT' && refund) { res.writeHead(201); return res.end(); }
+    res.writeHead(404); res.end('{}');
+  });
+});
 
 // next Mon–Thu (full 11:00–20:00 hours) so 12:00/18:00 slots always exist,
 // regardless of which weekday CI runs on
@@ -51,14 +76,18 @@ before(async () => {
       STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET,
       REVIEW_URL: 'https://example.com/review',
       RESEND_API_KEY: '', ELKS_API_USER: '', ELKS_API_PASSWORD: '',
+      SWISH_PAYEE_ALIAS: '1231111111',
+      SWISH_BASE_URL: `http://localhost:${MOCK_SWISH_PORT}`,
     },
     stdio: 'ignore',
   });
+  await new Promise((r) => swishMock.listen(MOCK_SWISH_PORT, r));
   await waitForServer();
 });
 
 after(() => {
   server.kill();
+  swishMock.close();
   fs.rmSync(tmpData, { recursive: true, force: true });
 });
 
@@ -202,6 +231,71 @@ test('dine-in respects table capacity', async () => {
     pickupDate: DATE, pickupTime: '18:00', serviceType: 'dinein', guests: 6,
   });
   assert.equal(r.status, 400, 'full table window rejected for dine-in orders');
+});
+
+// ---------------------------------------------------------------- swish
+test('swish: payment request -> approve in app -> kitchen sees paid order', async () => {
+  const menu = await (await fetch(B + '/api/menu')).json();
+  const item = menu.categories[0].items[0];
+
+  const cfg = await (await fetch(B + '/api/config')).json();
+  assert.equal(cfg.swish, true, 'swish advertised to the client');
+
+  // invalid swedish mobile is rejected up front
+  const bad = await post('/api/orders', { name: 'Swish Fel', phone: '12345678', items: [{ id: item.id, qty: 1 }], pickupDate: DATE, pickupTime: '14:00', paymentMethod: 'swish' });
+  assert.equal(bad.status, 400);
+
+  const r = await post('/api/orders', { name: 'Swish CI', phone: '070-123 45 67', items: [{ id: item.id, qty: 1 }], pickupDate: DATE, pickupTime: '14:00', paymentMethod: 'swish' });
+  assert.equal(r.status, 201);
+  const o = await r.json();
+  assert.equal(o.swishPending, true);
+
+  // the mock got the request with the normalized alias
+  const uuid = [...swishState.keys()].pop();
+  assert.equal(swishState.get(uuid).payerAlias, '46701234567', 'phone normalized to swish alias');
+  assert.equal(swishState.get(uuid).amount, String(o.total));
+
+  // still pending while unapproved
+  let st = await (await fetch(`${B}/api/orders/${o.id}?token=${o.token}`)).json();
+  assert.equal(st.status, 'pending_payment');
+
+  // customer approves in the app -> mock flips to PAID -> next poll confirms
+  swishState.get(uuid).status = 'PAID';
+  st = await (await fetch(`${B}/api/orders/${o.id}?token=${o.token}`)).json();
+  assert.equal(st.status, 'new');
+  assert.equal(st.paid, true, 'order marked paid after swish approval');
+
+  // refund the swish payment from the kitchen dashboard
+  const login = await post('/api/admin/login', { pin: '9999' });
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  const refund = await fetch(`${B}/api/admin/orders/${o.id}/refund`, { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: '{}' });
+  assert.equal(refund.status, 200, 'swish refund succeeds');
+});
+
+test('swish callback wakes reconciliation', async () => {
+  const menu = await (await fetch(B + '/api/menu')).json();
+  const item = menu.categories[0].items[0];
+  const o = await (await post('/api/orders', { name: 'Swish CB', phone: '0709876543', items: [{ id: item.id, qty: 1 }], pickupDate: DATE, pickupTime: '15:00', paymentMethod: 'swish' })).json();
+  const uuid = [...swishState.keys()].pop();
+  swishState.get(uuid).status = 'PAID';
+  await post('/api/swish/callback', { id: uuid, status: 'PAID' });
+  const st = await (await fetch(`${B}/api/orders/${o.id}?token=${o.token}`)).json();
+  assert.equal(st.paid, true, 'callback triggered verification and payment');
+});
+
+test('declined swish releases a dine-in table', async () => {
+  const menu = await (await fetch(B + '/api/menu')).json();
+  const item = menu.categories[0].items[0];
+  const o = await (await post('/api/orders', { name: 'Swish Nej', phone: '0701112222', items: [{ id: item.id, qty: 1 }], pickupDate: DATE, pickupTime: '12:30', paymentMethod: 'swish', serviceType: 'dinein', guests: 2 })).json();
+  const uuid = [...swishState.keys()].pop();
+  swishState.get(uuid).status = 'DECLINED';
+  const st = await (await fetch(`${B}/api/orders/${o.id}?token=${o.token}`)).json();
+  assert.equal(st.status, 'cancelled', 'declined payment cancels the order');
+  const login = await post('/api/admin/login', { pin: '9999' });
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  const resv = await (await fetch(B + '/api/admin/reservations', { headers: { cookie } })).json();
+  const linked = resv.reservations.find((x) => x.name === 'Swish Nej');
+  assert.equal(linked.status, 'cancelled', 'linked table released');
 });
 
 test('booking validation: outside hours and past dates rejected', async () => {

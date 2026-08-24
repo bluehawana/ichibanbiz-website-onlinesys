@@ -91,13 +91,17 @@
             <div class="field" id="pay-field" hidden>
               <label>Betalning</label>
               <div style="display:grid;gap:0.5rem">
-                <label style="display:flex;gap:0.6rem;align-items:center;font-weight:500;color:var(--ink)">
-                  <input type="radio" name="paymethod" value="online" checked> <span>Betala online (kort)</span>
+                <label id="pay-swish" style="display:flex;gap:0.6rem;align-items:center;font-weight:500;color:var(--ink)" hidden>
+                  <input type="radio" name="paymethod" value="swish"> <span>Swish <span class="muted" style="font-weight:400">— betalförfrågan till din mobil</span></span>
+                </label>
+                <label id="pay-online" style="display:flex;gap:0.6rem;align-items:center;font-weight:500;color:var(--ink)" hidden>
+                  <input type="radio" name="paymethod" value="online"> <span>Kort · Apple Pay · Google Pay</span>
                 </label>
                 <label style="display:flex;gap:0.6rem;align-items:center;font-weight:500;color:var(--ink)">
-                  <input type="radio" name="paymethod" value="pickup"> <span>Betala vid avhämtning</span>
+                  <input type="radio" name="paymethod" value="pickup" checked> <span>Betala i restaurangen</span>
                 </label>
               </div>
+              <p class="form-note" style="margin-top:0.5rem">Inga kortuppgifter sparas hos oss — Swish godkänns i din app, kortbetalning sker på Stripes säkra sida.</p>
             </div>
             <button class="btn btn-primary" type="submit" id="submit-btn" style="width:100%">Skicka beställning</button>
             <p class="form-note" style="margin-top:0.8rem" data-i18n="order.paynote">Ingen betalning online — du betalar när du hämtar. Vi bekräftar inte via sms; visa beställningsnumret i kassan.</p>
