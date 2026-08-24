@@ -50,6 +50,24 @@ Obetalda/avbrutna checkouts når aldrig köket. Om Stripe är nere faller
 beställningen automatiskt tillbaka till "betala vid avhämtning".
 
 Avgift: ca 1,5 % + 1,80 kr per kort­betalning inom EU. Ingen månadsavgift.
+Apple Pay / Google Pay / Klarna / PayPal aktiveras i Stripe Dashboard →
+Payment methods — inga kodändringar behövs.
+
+## Swish (lokala kunder — inga kortuppgifter)
+
+Kunden väljer Swish i kassan → en betalförfrågan skickas till kundens
+mobilnummer → kunden godkänner i Swish-appen → köksskärmen larmar när
+betalningen gått igenom. Avvisad/utebliven betalning avbryter ordern
+(och släpper bordet vid "ät här").
+
+1. Beställ **Swish Handel** via restaurangens bank (obs: inte samma som
+   Swish Företag).
+2. Hämta API-certifikatet på portal.swish.nu och lägg det på servern.
+3. Sätt i `.env`: `SWISH_PAYEE_ALIAS` (ert Swish-nummer), `SWISH_CERT`
+   och `SWISH_KEY` (PEM-filerna). Starta om — Swish-alternativet dyker
+   upp i kassan automatiskt.
+
+Avgift: enligt bankens Swish Handel-avtal (typiskt 1–2 kr per betalning).
 
 ## Köksskärmen (`/admin`)
 

@@ -38,6 +38,15 @@ const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';   // sk_live_... 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || ''; // whsec_...
 const ONLINE_PAYMENT = Boolean(STRIPE_SECRET_KEY);
 
+// Swish Handel (merchant payment requests): requires an agreement via the bank
+// and a client TLS certificate from getswish.se. SWISH_BASE_URL http://... enables
+// a plain-http mock for tests.
+const SWISH_PAYEE_ALIAS = process.env.SWISH_PAYEE_ALIAS || '';       // e.g. 1231234567
+const SWISH_CERT = process.env.SWISH_CERT || '';                     // path to PEM cert
+const SWISH_KEY = process.env.SWISH_KEY || '';                       // path to PEM key
+const SWISH_BASE_URL = process.env.SWISH_BASE_URL || 'https://cpc.getswish.net/swish-cpcapi';
+const SWISH_ENABLED = Boolean(SWISH_PAYEE_ALIAS && (SWISH_BASE_URL.startsWith('http://') || (SWISH_CERT && SWISH_KEY)));
+
 // ---------------------------------------------------------------- opening hours
 // 0=Sunday ... 6=Saturday  [open, close] in minutes from midnight
 const HOURS = {
@@ -256,7 +265,7 @@ async function reconcileOrder(o) {
 
 // Sweep every minute: reconcile pending payments; cancel anything stuck > 45 min.
 setInterval(() => {
-  if (!ONLINE_PAYMENT) return;
+  if (!ONLINE_PAYMENT && !SWISH_ENABLED) return;
   const now = Date.now();
   for (const o of orders) {
     if (o.status !== 'pending_payment') continue;
@@ -266,8 +275,9 @@ setInterval(() => {
       o.updatedAt = new Date().toISOString();
       saveJson('orders.json', orders);
       cancelLinkedReservation(o);
-    } else if (ageMin > 2) {
-      reconcileOrder(o);
+    } else if (ageMin > (o.swishId ? 0.5 : 2)) {
+      if (o.swishId) reconcileSwishOrder(o);
+      else reconcileOrder(o);
     }
   }
 }, 60000).unref();
@@ -286,6 +296,78 @@ function verifyStripeSignature(rawBody, sigHeader) {
   return parts.v1.some((sig) => {
     try { return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected)); } catch { return false; }
   });
+}
+
+// ---------------------------------------------------------------- swish (payment requests — no card details, ever)
+const swishUrl = new URL(SWISH_BASE_URL);
+function swishRequest(method, apiPath, body) {
+  return new Promise((resolve, reject) => {
+    const data = body ? JSON.stringify(body) : '';
+    const opts = {
+      hostname: swishUrl.hostname,
+      port: swishUrl.port || (swishUrl.protocol === 'https:' ? 443 : 80),
+      path: swishUrl.pathname.replace(/\/$/, '') + apiPath,
+      method,
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) },
+    };
+    if (swishUrl.protocol === 'https:') {
+      try {
+        opts.cert = fs.readFileSync(SWISH_CERT);
+        opts.key = fs.readFileSync(SWISH_KEY);
+      } catch (e) { return reject(new Error('swish cert: ' + e.message)); }
+    }
+    const mod = swishUrl.protocol === 'https:' ? https : http;
+    const req = mod.request(opts, (res) => {
+      let d = '';
+      res.on('data', (c) => (d += c));
+      res.on('end', () => {
+        if (res.statusCode >= 400) return reject(new Error(`swish ${res.statusCode}: ${d.slice(0, 200)}`));
+        resolve({ status: res.statusCode, headers: res.headers, body: d ? JSON.parse(d) : null });
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(15000, () => req.destroy(new Error('swish timeout')));
+    req.end(data);
+  });
+}
+
+// 070-123 45 67 -> 46701234567 (Swish payerAlias format)
+function swishAlias(phone) {
+  let p = String(phone || '').replace(/\D/g, '');
+  if (p.startsWith('00')) p = p.slice(2);
+  if (p.startsWith('0')) p = '46' + p.slice(1);
+  return /^46\d{8,10}$/.test(p) ? p : null;
+}
+
+async function createSwishPayment(order) {
+  const payerAlias = swishAlias(order.customer.phone);
+  if (!payerAlias) throw new Error('Ange ett svenskt mobilnummer för Swish.');
+  const uuid = crypto.randomUUID().replace(/-/g, '').toUpperCase();
+  await swishRequest('PUT', `/api/v2/paymentrequests/${uuid}`, {
+    payeePaymentReference: String(order.number).padStart(6, '0'),
+    callbackUrl: `${BASE_URL}/api/swish/callback`,
+    payerAlias,
+    payeeAlias: SWISH_PAYEE_ALIAS,
+    amount: String(order.total),
+    currency: 'SEK',
+    message: `Ichiban Sushi order #${order.number}`,
+  });
+  return uuid;
+}
+
+// safety net (mirrors the Stripe reconciliation): ask Swish directly
+async function reconcileSwishOrder(o) {
+  if (!o || o.status !== 'pending_payment' || !o.swishId) return;
+  try {
+    const { body } = await swishRequest('GET', `/api/v1/paymentrequests/${o.swishId}`);
+    if (body && body.status === 'PAID') markOrderPaid(o.id, null, body.paymentReference);
+    else if (body && ['DECLINED', 'ERROR', 'CANCELLED'].includes(body.status)) {
+      o.status = 'cancelled';
+      o.updatedAt = new Date().toISOString();
+      saveJson('orders.json', orders);
+      cancelLinkedReservation(o);
+    }
+  } catch (e) { console.error('swish reconcile failed for #' + o.number + ':', e.message); }
 }
 
 // ---------------------------------------------------------------- orders
@@ -327,6 +409,7 @@ function createOrder(body) {
   }
 
   const wantsOnline = ONLINE_PAYMENT && body.paymentMethod === 'online';
+  const wantsSwish = SWISH_ENABLED && body.paymentMethod === 'swish';
   const id = crypto.randomUUID();
   const order = {
     id,
@@ -334,9 +417,9 @@ function createOrder(body) {
     token: crypto.randomBytes(12).toString('hex'), // lets the customer poll their own order status
     createdAt: new Date().toISOString(),
     // pending_payment -> (webhook) -> new -> accepted -> ready -> done | cancelled
-    status: wantsOnline ? 'pending_payment' : 'new',
+    status: (wantsOnline || wantsSwish) ? 'pending_payment' : 'new',
     paid: false,
-    paymentMethod: wantsOnline ? 'online' : 'pickup',
+    paymentMethod: wantsSwish ? 'swish' : wantsOnline ? 'online' : 'pickup',
     serviceType: dineIn ? 'dinein' : 'pickup',
     guests,
     lang: body.lang === 'en' ? 'en' : 'sv',
@@ -367,7 +450,7 @@ function createOrder(body) {
     order.reservationId = r.id;
     saveJson('orders.json', orders);
   }
-  if (!wantsOnline) {
+  if (!wantsOnline && !wantsSwish) {
     // pay at the restaurant: the kitchen hears about it immediately
     broadcast('order', publicAdminOrder(order));
     if (dineIn) broadcast('reservation-status', { id: order.reservationId, status: 'confirmed' });
@@ -388,11 +471,12 @@ function cancelLinkedReservation(order) {
   }
 }
 
-function markOrderPaid(orderId, paymentIntent) {
+function markOrderPaid(orderId, paymentIntent, swishRef) {
   const o = orders.find((x) => x.id === orderId);
   if (!o || o.paid) return;
   o.paid = true;
-  if (paymentIntent) o.paymentIntent = paymentIntent; // needed for refunds
+  if (paymentIntent) o.paymentIntent = paymentIntent; // needed for refunds (stripe)
+  if (swishRef) o.swishPaymentRef = swishRef;         // needed for refunds (swish)
   if (o.status === 'pending_payment') o.status = 'new';
   o.updatedAt = new Date().toISOString();
   saveJson('orders.json', orders);
@@ -402,7 +486,7 @@ function markOrderPaid(orderId, paymentIntent) {
 }
 
 function publicAdminOrder(o) {
-  return { id: o.id, number: o.number, createdAt: o.createdAt, status: o.status, paid: o.paid, refunded: !!o.refunded, canRefund: !!(o.paid && o.paymentIntent && !o.refunded), paymentMethod: o.paymentMethod, serviceType: o.serviceType || 'pickup', guests: o.guests || 0, customer: o.customer, note: o.note, pickup: o.pickup, lines: o.lines, total: o.total };
+  return { id: o.id, number: o.number, createdAt: o.createdAt, status: o.status, paid: o.paid, refunded: !!o.refunded, canRefund: !!(o.paid && (o.paymentIntent || o.swishPaymentRef) && !o.refunded), paymentMethod: o.paymentMethod, serviceType: o.serviceType || 'pickup', guests: o.guests || 0, customer: o.customer, note: o.note, pickup: o.pickup, lines: o.lines, total: o.total };
 }
 function publicCustomerOrder(o) {
   return { number: o.number, status: o.status, paid: o.paid, refunded: !!o.refunded, paymentMethod: o.paymentMethod, serviceType: o.serviceType || 'pickup', guests: o.guests || 0, pickup: o.pickup, lines: o.lines, total: o.total, createdAt: o.createdAt };
@@ -616,6 +700,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/config' && req.method === 'GET') {
       return sendJson(res, 200, {
         onlinePayment: ONLINE_PAYMENT,
+        swish: SWISH_ENABLED,
         currency: 'SEK',
         reviewUrl: REVIEW_URL || (GOOGLE_PLACE_ID ? `https://search.google.com/local/writereview?placeid=` : null),
       });
@@ -637,6 +722,25 @@ const server = http.createServer(async (req, res) => {
       try {
         const order = createOrder(body);
         let payUrl = null;
+        if (order.paymentMethod === 'swish') {
+          try {
+            order.swishId = await createSwishPayment(order);
+            saveJson('orders.json', orders);
+          } catch (e) {
+            console.error('swish payment request failed:', e.message);
+            if (/mobilnummer/.test(e.message)) {
+              // bad payer number: let the customer fix it instead of silently falling back
+              order.status = 'cancelled';
+              cancelLinkedReservation(order);
+              saveJson('orders.json', orders);
+              return sendJson(res, 400, { error: e.message });
+            }
+            order.paymentMethod = 'pickup';
+            order.status = 'new';
+            saveJson('orders.json', orders);
+            broadcast('order', publicAdminOrder(order));
+          }
+        }
         if (order.paymentMethod === 'online') {
           try {
             const session = await createCheckoutSession(order);
@@ -652,8 +756,18 @@ const server = http.createServer(async (req, res) => {
             broadcast('order', publicAdminOrder(order));
           }
         }
-        return sendJson(res, 201, { id: order.id, token: order.token, number: order.number, total: order.total, pickup: order.pickup, payUrl });
+        return sendJson(res, 201, { id: order.id, token: order.token, number: order.number, total: order.total, pickup: order.pickup, payUrl, swishPending: order.paymentMethod === 'swish' && order.status === 'pending_payment' });
       } catch (e) { return sendJson(res, 400, { error: e.message }); }
+    }
+
+    // Swish callback: we only use it as a wake-up signal, then verify with Swish directly
+    if (p === '/api/swish/callback' && req.method === 'POST') {
+      try {
+        const body = await readJsonBody(req);
+        const o = orders.find((x) => x.swishId && body && body.id && x.swishId === body.id);
+        if (o) await reconcileSwishOrder(o);
+      } catch { /* malformed callback — reconciliation sweep covers it */ }
+      return sendJson(res, 200, { received: true });
     }
 
     // Stripe webhook: raw body needed for signature verification
@@ -685,8 +799,8 @@ const server = http.createServer(async (req, res) => {
     if (mOrder && req.method === 'GET') {
       const o = orders.find(x => x.id === mOrder[1]);
       if (!o || !timingEqual(url.searchParams.get('token') || '', o.token)) return sendJson(res, 404, { error: 'not found' });
-      // customer returned from Stripe: confirm payment even if the webhook is late/missing
-      if (o.status === 'pending_payment') await reconcileOrder(o);
+      // confirm payment even if the callback/webhook is late or missing
+      if (o.status === 'pending_payment') await (o.swishId ? reconcileSwishOrder(o) : reconcileOrder(o));
       return sendJson(res, 200, publicCustomerOrder(o));
     }
 
@@ -758,10 +872,24 @@ const server = http.createServer(async (req, res) => {
       if (mRefund && req.method === 'POST') {
         const o = orders.find(x => x.id === mRefund[1]);
         if (!o) return sendJson(res, 404, { error: 'not found' });
-        if (!o.paid || !o.paymentIntent) return sendJson(res, 400, { error: 'Ordern är inte betald online — inget att återbetala.' });
+        if (!o.paid || (!o.paymentIntent && !o.swishPaymentRef)) return sendJson(res, 400, { error: 'Ordern är inte betald online — inget att återbetala.' });
         if (o.refunded) return sendJson(res, 400, { error: 'Redan återbetald.' });
         try {
-          const refund = await stripeRequest('POST', '/v1/refunds', { payment_intent: o.paymentIntent }, { 'Idempotency-Key': 'refund-' + o.id });
+          let refund;
+          if (o.swishPaymentRef) {
+            const uuid = crypto.randomUUID().replace(/-/g, '').toUpperCase();
+            await swishRequest('PUT', `/api/v2/refunds/${uuid}`, {
+              originalPaymentReference: o.swishPaymentRef,
+              callbackUrl: `${BASE_URL}/api/swish/callback`,
+              payerAlias: SWISH_PAYEE_ALIAS,
+              amount: String(o.total),
+              currency: 'SEK',
+              message: `Återbetalning order #${o.number}`,
+            });
+            refund = { id: uuid };
+          } else {
+            refund = await stripeRequest('POST', '/v1/refunds', { payment_intent: o.paymentIntent }, { 'Idempotency-Key': 'refund-' + o.id });
+          }
           o.refunded = true;
           o.refundId = refund.id;
           o.status = 'cancelled';

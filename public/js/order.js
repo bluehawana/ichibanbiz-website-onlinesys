@@ -202,7 +202,7 @@
           items: cart,
           serviceType,
           guests: serviceType === 'dinein' ? document.getElementById('f-guests').value : undefined,
-          paymentMethod: CONFIG.onlinePayment && payRadio ? payRadio.value : 'pickup',
+          paymentMethod: (CONFIG.onlinePayment || CONFIG.swish) && payRadio ? payRadio.value : 'pickup',
           lang: window.I18N ? window.I18N.lang : 'sv',
         }),
       });
@@ -237,7 +237,14 @@
   // ---------- boot ----------
   fetch('/api/config').then((r) => r.json()).then((cfg) => {
     CONFIG = cfg;
-    document.getElementById('pay-field').hidden = !cfg.onlinePayment;
+    const anyOnline = cfg.onlinePayment || cfg.swish;
+    document.getElementById('pay-field').hidden = !anyOnline;
+    document.getElementById('pay-online').hidden = !cfg.onlinePayment;
+    document.getElementById('pay-swish').hidden = !cfg.swish;
+    // preselect the most local option: Swish first, then card, then in-restaurant
+    const prefer = cfg.swish ? 'swish' : cfg.onlinePayment ? 'online' : 'pickup';
+    const radio = document.querySelector(`input[name="paymethod"][value="${prefer}"]`);
+    if (radio) radio.checked = true;
   }).catch(() => {});
 
   fetch('/api/menu').then((r) => r.json()).then((menu) => {
