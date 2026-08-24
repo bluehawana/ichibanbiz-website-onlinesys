@@ -1,4 +1,4 @@
-// Smoke tests for the whole system — run with: node --test test/
+// Smoke tests for the whole system — run with: node --test test/*.test.js
 // Boots the real server on an ephemeral port with an isolated data dir.
 'use strict';
 

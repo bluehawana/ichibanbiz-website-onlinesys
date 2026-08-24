@@ -38,7 +38,7 @@ jobs:
           "
 
       - name: Smoke tests (boot real server, exercise all APIs)
-        run: node --test test/
+        run: node --test test/*.test.js
 
       - name: Package build artifact
         run: |
