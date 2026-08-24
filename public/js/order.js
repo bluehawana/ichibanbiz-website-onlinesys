@@ -15,8 +15,8 @@
   let selDay = null, selTime = null;
 
   // ---------- cart persistence ----------
-  try { cart = JSON.parse(localStorage.getItem('ichiban-cart') || '[]'); } catch { cart = []; }
-  const persist = () => { try { localStorage.setItem('ichiban-cart', JSON.stringify(cart)); } catch {} };
+  try { cart = JSON.parse(localStorage.getItem('site-cart') || '[]'); } catch { cart = []; }
+  const persist = () => { try { localStorage.setItem('site-cart', JSON.stringify(cart)); } catch {} };
 
   const keyOf = (id, option) => id + (option ? '::' + option : '');
   function addToCart(id, option) {
@@ -42,7 +42,7 @@
   function itemRow(it) {
     const img = it.img
       ? `<img src="/assets/img/menu/${esc(it.img)}" alt="" loading="lazy">`
-      : '<div class="noimg">一番</div>';
+      : '<div class="noimg">店</div>';
     const opts = it.options
       ? `<select class="opt-select" data-id="${esc(it.id)}" aria-label="${esc(lf(it.options, 'label'))}">${it.options.choices.map((c) => `<option>${esc(c)}</option>`).join('')}</select>`
       : '';
@@ -217,7 +217,7 @@
     return loadSlots();
   }).catch(() => {
     document.getElementById('order-menu').innerHTML =
-      '<p class="muted">Beställningen är inte tillgänglig just nu — ring oss på <a href="tel:+4631831786">031-83 17 86</a> så hjälper vi dig direkt.</p>';
+      '<p class="muted">Beställningen är inte tillgänglig just nu — ring oss på <a href="tel:+46000000000">000-00 00 00</a> så hjälper vi dig direkt.</p>';
   });
   setInterval(loadSlots, 5 * 60 * 1000); // keep slot list fresh
 })();

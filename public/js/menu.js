@@ -61,5 +61,5 @@
       render(menu);
       if (window.I18N) window.I18N.onChange(() => render(menu));
     })
-    .catch(() => { document.getElementById('menu-root').innerHTML = '<p class="muted">Menyn kunde inte laddas just nu — ring oss gärna på <a href="tel:+4631831786">031-83 17 86</a>.</p>'; });
+    .catch(() => { document.getElementById('menu-root').innerHTML = '<p class="muted">Menyn kunde inte laddas just nu — ring oss gärna på <a href="tel:+46000000000">000-00 00 00</a>.</p>'; });
 })();

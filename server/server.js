@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * Ichiban Sushi — self-hosted site + pickup ordering system.
+ * Restaurang Demo — self-hosted site + pickup ordering system.
  * Zero npm dependencies: plain Node.js (>=18). Run: node server/server.js
  *
  * Env:
@@ -363,7 +363,7 @@ function publicCustomerOrder(o) {
 // (46elks.com, ELKS_API_USER + ELKS_API_PASSWORD). Without keys: silently skipped —
 // Stripe's own receipt still covers online payments.
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const RECEIPT_FROM = process.env.RECEIPT_FROM || 'Ichiban Sushi <kvitto@ichiban.biz>';
+const RECEIPT_FROM = process.env.RECEIPT_FROM || 'Restaurang Demo <kvitto@example.com>';
 const ELKS_USER = process.env.ELKS_API_USER || '';
 const ELKS_PASS = process.env.ELKS_API_PASSWORD || '';
 const SMS_ON_READY = process.env.SMS_ON_READY === '1'; // text the customer when food is ready
@@ -388,8 +388,8 @@ function receiptHtml(o) {
   const rows = o.lines.map((l) => `<tr><td style="padding:6px 0">${l.qty} × ${esc(l.name)}${l.option ? ' · ' + esc(l.option) : ''}</td><td align="right">${l.lineTotal} kr</td></tr>`).join('');
   return `<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;color:#26211a">
     <div style="background:#cf3f2b;color:#fff;border-radius:10px;padding:18px 22px">
-      <div style="font-size:22px;font-weight:bold">一番 Ichiban Sushi</div>
-      <div style="opacity:.85;font-size:13px">Södra Vägen 91, 412 63 Göteborg · 031-83 17 86</div>
+      <div style="font-size:22px;font-weight:bold">店 Restaurang Demo</div>
+      <div style="opacity:.85;font-size:13px">Exempelgatan 1, 111 11 Staden · 000-00 00 00</div>
     </div>
     <div style="padding:20px 6px">
       <p style="font-size:16px">${en ? 'Thank you for your order' : 'Tack för din beställning'}, ${esc(o.customer.name)}!</p>
@@ -411,7 +411,7 @@ function sendReceipt(o) {
     const en = o.lang === 'en';
     const body = JSON.stringify({
       from: RECEIPT_FROM, to: [o.customer.email],
-      subject: en ? `Receipt — order #${o.number}, Ichiban Sushi` : `Kvitto — beställning #${o.number}, Ichiban Sushi`,
+      subject: en ? `Receipt — order #${o.number}, Restaurang Demo` : `Kvitto — beställning #${o.number}, Restaurang Demo`,
       html: receiptHtml(o),
     });
     httpsJson('api.resend.com', '/emails', { Authorization: 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }, body)
@@ -423,7 +423,7 @@ function sendReceipt(o) {
 function sendSms(to, text) {
   if (!ELKS_USER || !ELKS_PASS) return;
   const msisdn = to.replace(/[^\d+]/g, '').replace(/^0/, '+46');
-  const body = new URLSearchParams({ from: 'Ichiban', to: msisdn, message: text }).toString();
+  const body = new URLSearchParams({ from: 'Restaurang Demo', to: msisdn, message: text }).toString();
   httpsJson('api.46elks.com', '/a1/sms', {
     Authorization: 'Basic ' + Buffer.from(ELKS_USER + ':' + ELKS_PASS).toString('base64'),
     'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body),
@@ -604,8 +604,8 @@ const server = http.createServer(async (req, res) => {
         broadcast('order-status', { id: o.id, status: o.status });
         if (body.status === 'ready' && SMS_ON_READY) {
           sendSms(o.customer.phone, o.lang === 'en'
-            ? `Ichiban Sushi: your order #${o.number} is ready for pickup!`
-            : `Ichiban Sushi: din beställning #${o.number} är klar att hämtas!`);
+            ? `Restaurang Demo: your order #${o.number} is ready for pickup!`
+            : `Restaurang Demo: din beställning #${o.number} är klar att hämtas!`);
         }
         return sendJson(res, 200, { ok: true });
       }
@@ -671,5 +671,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Ichiban server igång: http://localhost:${PORT}  (admin: /admin, PIN: ${ADMIN_PIN === '1234' ? '1234 — ÄNDRA MED ADMIN_PIN!' : 'satt via env'})`);
+  console.log(`Restaurang Demo server igång: http://localhost:${PORT}  (admin: /admin, PIN: ${ADMIN_PIN === '1234' ? '1234 — ÄNDRA MED ADMIN_PIN!' : 'satt via env'})`);
 });

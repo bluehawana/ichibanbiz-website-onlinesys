@@ -1,4 +1,4 @@
-# Ichiban Sushi — självhostad webbplats + beställningssystem
+# Restaurang Demo — självhostad webbplats + beställningssystem
 
 Komplett ersättning för Wix: webbplats, onlinebeställning för avhämtning (med
 Stripe-betalning), bordsbokning och en köksskärm med larm — allt i en enda
@@ -39,7 +39,7 @@ Kräver Node.js 18+. Ingen `npm install`.
 
 1. Skapa konto på stripe.com → hämta **Secret key** (`sk_live_…`).
 2. Lägg till en webhook-endpoint i Stripe Dashboard:
-   `https://ichiban.biz/api/stripe/webhook` med händelserna
+   `https://example.com/api/stripe/webhook` med händelserna
    `checkout.session.completed` och `checkout.session.expired`.
    Kopiera **Signing secret** (`whsec_…`).
 3. Sätt `STRIPE_SECRET_KEY` och `STRIPE_WEBHOOK_SECRET` i miljön och starta om.
@@ -78,7 +78,7 @@ sudo systemctl reload caddy
 ```
 
 - **systemd** startar om servern automatiskt vid krasch och vid omstart av VPS:en.
-- **Caddy** ger automatiskt HTTPS (Let's Encrypt) för ichiban.biz.
+- **Caddy** ger automatiskt HTTPS (Let's Encrypt) för example.com.
 - Peka domänens A-post mot VPS:ens IP när ni är redo att lämna Wix.
 
 ### Backup

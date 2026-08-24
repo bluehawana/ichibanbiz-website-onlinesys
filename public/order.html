@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Din beställning — Ichiban Sushi</title>
+<title>Din beställning — Restaurang Demo</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,8 +16,8 @@
 <header class="site-head">
   <div class="bar">
     <a class="brand" href="/">
-      <span class="seal">一番</span>
-      <span class="name">Ichiban Sushi<small>Göteborg · Södra Vägen 91</small></span>
+      <span class="seal">店</span>
+      <span class="name">Restaurang Demo<small>Göteborg · Exempelgatan 1</small></span>
     </a>
   </div>
 </header>
@@ -42,7 +42,7 @@
       accepted: ['Bekräftad — vi lagar din mat', 'Köket har accepterat din beställning.'],
       ready: ['Klar att hämtas!', 'Din mat är klar — välkommen in.'],
       done: ['Uthämtad', 'Tack för din beställning — välkommen åter!'],
-      cancelled: ['Avbruten', 'Beställningen har avbrutits. Ring oss på 031-83 17 86 vid frågor.'],
+      cancelled: ['Avbruten', 'Beställningen har avbrutits. Ring oss på 000-00 00 00 vid frågor.'],
     },
     en: {
       pending_payment: ['Awaiting payment', 'Complete the payment to send your order to the kitchen.'],
@@ -50,7 +50,7 @@
       accepted: ['Confirmed — we are preparing your food', 'The kitchen has accepted your order.'],
       ready: ['Ready for pickup!', 'Your food is ready — welcome in.'],
       done: ['Picked up', 'Thank you for your order — welcome back!'],
-      cancelled: ['Cancelled', 'The order was cancelled. Call us at 031-83 17 86 with any questions.'],
+      cancelled: ['Cancelled', 'The order was cancelled. Call us at 000-00 00 00 with any questions.'],
     },
   };
   function render(o) {
@@ -73,7 +73,7 @@
         <div style="display:flex;justify-content:space-between;padding:0.35rem 0;border-top:1px dashed var(--line);margin-top:0.4rem;font-size:0.9rem"><span>${lang === 'en' ? 'VAT (12%) included' : 'Varav moms (12 %)'}</span><span>${Math.round(o.total * 0.12 / 1.12)} kr</span></div>
       </div>
       <button class="btn btn-ghost" onclick="window.print()" style="margin-top:1.4rem;font-size:0.9rem;padding:0.6rem 1.3rem">${lang === 'en' ? '🖨 Print receipt' : '🖨 Skriv ut kvitto'}</button>
-      <p class="form-note" style="margin-top:1.2rem">Södra Vägen 91, Göteborg · <a href="tel:+4631831786" style="color:var(--aka)">031-83 17 86</a><br>${L.save}</p>`;
+      <p class="form-note" style="margin-top:1.2rem">Exempelgatan 1, Staden · <a href="tel:+46000000000" style="color:var(--aka)">000-00 00 00</a><br>${L.save}</p>`;
   }
   function load() {
     fetch(`/api/orders/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`)

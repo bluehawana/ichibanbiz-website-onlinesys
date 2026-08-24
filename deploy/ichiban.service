@@ -1,5 +1,5 @@
 [Unit]
-Description=Ichiban Sushi website + ordering system
+Description=Restaurang Demo website + ordering system
 After=network.target
 
 [Service]
@@ -13,7 +13,7 @@ RestartSec=3
 
 # Override these with `systemctl edit ichiban`:
 Environment=PORT=3000
-Environment=BASE_URL=https://ichiban.biz
+Environment=BASE_URL=https://example.com
 # Environment=ADMIN_PIN=change-me
 # Environment=SECRET=long-random-string
 # Environment=STRIPE_SECRET_KEY=sk_live_...

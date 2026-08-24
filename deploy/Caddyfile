@@ -1,5 +1,5 @@
-# Automatic HTTPS for ichiban.biz — Caddy handles certificates by itself.
-ichiban.biz, www.ichiban.biz {
+# Automatic HTTPS for example.com — Caddy handles certificates by itself.
+example.com, www.example.com {
 	encode gzip zstd
 	reverse_proxy localhost:3000
 

@@ -1,4 +1,4 @@
-// Ichiban Kök — kitchen dashboard.
+// Demo Kök — kitchen dashboard.
 // New orders arrive over SSE and ring a repeating alarm until every one is accepted.
 (function () {
   'use strict';
@@ -48,7 +48,7 @@
     if (hasUnacked()) {
       if (!alarmTimer) { beepBurst(); alarmTimer = setInterval(beepBurst, 2500); }
     } else if (alarmTimer) { clearInterval(alarmTimer); alarmTimer = null; }
-    document.title = hasUnacked() ? '🔔 NY BESTÄLLNING — Ichiban Kök' : 'Ichiban Kök — beställningar';
+    document.title = hasUnacked() ? '🔔 NY BESTÄLLNING — Demo Kök' : 'Demo Kök — beställningar';
   }
   function notify(title, body) {
     if (Notification.permission === 'granted') {
