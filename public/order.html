@@ -73,6 +73,12 @@
         <div style="display:flex;justify-content:space-between;padding:0.35rem 0;border-top:1px dashed var(--line);margin-top:0.4rem;font-size:0.9rem"><span>${lang === 'en' ? 'VAT (12%) included' : 'Varav moms (12 %)'}</span><span>${Math.round(o.total * 0.12 / 1.12)} kr</span></div>
       </div>
       <button class="btn btn-ghost" onclick="window.print()" style="margin-top:1.4rem;font-size:0.9rem;padding:0.6rem 1.3rem">${lang === 'en' ? '🖨 Print receipt' : '🖨 Skriv ut kvitto'}</button>
+      ${(o.status === 'done' || o.status === 'ready') && window.__reviewUrl ? `
+      <div style="border-top:1px solid var(--line);margin-top:1.6rem;padding-top:1.4rem">
+        <span class="review-stars" aria-hidden="true" style="font-size:1.2rem">★★★★★</span>
+        <p class="muted" style="font-size:0.92rem;margin-bottom:0.9rem">${lang === 'en' ? 'Enjoyed your food? A Google review means a lot to us!' : 'Smakade det bra? Ett omdöme på Google betyder mycket för oss!'}</p>
+        <a class="review-cta" href="${window.__reviewUrl}" target="_blank" rel="noopener" style="font-size:0.92rem;padding:0.65rem 1.3rem"><span class="g">G</span> ${lang === 'en' ? 'Review us on Google' : 'Lämna ett omdöme'}</a>
+      </div>` : ''}
       <p class="form-note" style="margin-top:1.2rem">Södra Vägen 91, Göteborg · <a href="tel:+4631831786" style="color:var(--aka)">031-83 17 86</a><br>${L.save}</p>`;
   }
   function load() {
@@ -82,7 +88,7 @@
       .catch(() => { card.innerHTML = '<p class="muted">Beställningen hittades inte. <a href="/bestall" style="color:var(--aka)">Gör en ny beställning</a></p>'; });
   }
   if (!id || !token) { card.innerHTML = '<p class="muted">Ogiltig länk. <a href="/bestall" style="color:var(--aka)">Till beställningen</a></p>'; return; }
-  load();
+  fetch('/api/config').then((r) => r.json()).then((cfg) => { window.__reviewUrl = cfg.reviewUrl; load(); }).catch(load);
   setInterval(load, 20000);
 })();
 </script>

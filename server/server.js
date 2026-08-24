@@ -52,6 +52,11 @@ const HOURS = {
 const SLOT_STEP_MIN = 15;
 const MIN_LEAD_MIN = 30; // minimum preparation time
 
+// table bookings: how many guests can sit at once, and how long a table is held
+const MAX_CONCURRENT_GUESTS = parseInt(process.env.MAX_CONCURRENT_GUESTS || '40', 10);
+const BOOKING_DURATION_MIN = parseInt(process.env.BOOKING_DURATION_MIN || '90', 10);
+const GOOGLE_PLACE_ID = process.env.GOOGLE_PLACE_ID || '';
+
 // ---------------------------------------------------------------- tiny JSON store
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -430,9 +435,39 @@ function sendSms(to, text) {
   }, body).then(() => console.log('SMS sent to ' + msisdn)).catch((e) => console.error('sms failed:', e.message));
 }
 
+// how many guests are already seated in the window overlapping [startMin, startMin+duration)
+function bookedGuestsAt(date, startMin) {
+  let sum = 0;
+  for (const r of reservations) {
+    if (r.date !== date || r.status === 'cancelled') continue;
+    const [h, m] = r.time.split(':').map(Number);
+    const rStart = h * 60 + m;
+    if (rStart < startMin + BOOKING_DURATION_MIN && startMin < rStart + BOOKING_DURATION_MIN) sum += r.guests;
+  }
+  return sum;
+}
+
+// Wix-style availability: every 15-min slot for a date, marked available or not
+function bookingSlots(dateStr, guests) {
+  const d = new Date(dateStr + 'T12:00');
+  if (isNaN(d)) return null;
+  const [open, close] = HOURS[d.getDay()];
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const earliest = isToday ? now.getHours() * 60 + now.getMinutes() + MIN_LEAD_MIN : 0;
+  const out = [];
+  for (let m = open; m <= close - 45; m += SLOT_STEP_MIN) {
+    const past = m < earliest;
+    const full = bookedGuestsAt(dateStr, m) + guests > MAX_CONCURRENT_GUESTS;
+    out.push({ time: fmt2(Math.floor(m / 60)) + ':' + fmt2(m % 60), available: !past && !full });
+  }
+  return out;
+}
+
 function createReservation(body) {
   const name = sanitizeStr(body.name, 80);
   const phone = sanitizeStr(body.phone, 30).replace(/[^\d+\s()-]/g, '');
+  const email = sanitizeStr(body.email, 120);
   const guests = Math.max(1, Math.min(20, parseInt(body.guests, 10) || 0));
   const date = sanitizeStr(body.date, 10);
   const time = sanitizeStr(body.time, 5);
@@ -443,20 +478,55 @@ function createReservation(body) {
   const d = new Date(date + 'T' + time);
   if (isNaN(d) || d < new Date()) throw new Error('Tiden har redan passerat.');
   const [open, close] = HOURS[d.getDay()];
-  const mins = d.getHours() * 60 + d.getMinutes();
+  const [th, tm] = time.split(':').map(Number);
+  const mins = th * 60 + tm;
   if (mins < open || mins > close - 45) throw new Error('Utanför våra öppettider.');
+  if (bookedGuestsAt(date, mins) + guests > MAX_CONCURRENT_GUESTS) {
+    throw new Error('Tiden är tyvärr fullbokad — välj en annan tid.');
+  }
 
   const r = {
     id: crypto.randomUUID(),
+    token: crypto.randomBytes(12).toString('hex'), // lets the guest follow their booking status
     createdAt: new Date().toISOString(),
     status: 'new', // new -> confirmed | cancelled
-    name, phone, guests, date, time, note,
+    lang: body.lang === 'en' ? 'en' : 'sv',
+    name, phone, email, guests, date, time, note,
   };
   reservations.push(r);
   saveJson('reservations.json', reservations);
   broadcast('reservation', r);
   console.log(`RESERVATION ${name} ${guests}p @ ${date} ${time}`);
   return r;
+}
+
+// notify the guest when the restaurant confirms or declines
+function notifyReservation(r) {
+  const en = r.lang === 'en';
+  const confirmed = r.status === 'confirmed';
+  const smsText = confirmed
+    ? (en ? `Ichiban Sushi: your table for ${r.guests} on ${r.date} at ${r.time} is confirmed. Welcome!`
+          : `Ichiban Sushi: ert bord för ${r.guests} pers ${r.date} kl ${r.time} är bekräftat. Välkomna!`)
+    : (en ? `Ichiban Sushi: we could not confirm your booking ${r.date} ${r.time}. Please call 031-83 17 86.`
+          : `Ichiban Sushi: vi kunde tyvärr inte bekräfta er bokning ${r.date} kl ${r.time}. Ring oss gärna på 031-83 17 86.`);
+  sendSms(r.phone, smsText);
+  if (RESEND_API_KEY && r.email) {
+    const subject = confirmed
+      ? (en ? 'Table confirmed — Ichiban Sushi' : 'Bordsbokning bekräftad — Ichiban Sushi')
+      : (en ? 'About your booking — Ichiban Sushi' : 'Om din bokning — Ichiban Sushi');
+    const body = JSON.stringify({
+      from: RECEIPT_FROM, to: [r.email], subject,
+      html: `<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;color:#26211a">
+        <div style="background:#cf3f2b;color:#fff;border-radius:10px;padding:18px 22px">
+          <div style="font-size:22px;font-weight:bold">一番 Ichiban Sushi</div>
+          <div style="opacity:.85;font-size:13px">Södra Vägen 91, 412 63 Göteborg · 031-83 17 86</div>
+        </div>
+        <div style="padding:20px 6px"><p style="font-size:16px">${smsText.replace('Ichiban Sushi: ', '')}</p></div>
+      </div>`,
+    });
+    httpsJson('api.resend.com', '/emails', { Authorization: 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }, body)
+      .catch((e) => console.error('booking email failed:', e.message));
+  }
 }
 
 // ---------------------------------------------------------------- static files
@@ -495,7 +565,22 @@ const server = http.createServer(async (req, res) => {
   try {
     // ---------- public API
     if (p === '/api/menu' && req.method === 'GET') return sendJson(res, 200, MENU);
-    if (p === '/api/config' && req.method === 'GET') return sendJson(res, 200, { onlinePayment: ONLINE_PAYMENT, currency: 'SEK' });
+    if (p === '/api/config' && req.method === 'GET') {
+      return sendJson(res, 200, {
+        onlinePayment: ONLINE_PAYMENT,
+        currency: 'SEK',
+        reviewUrl: GOOGLE_PLACE_ID ? `https://search.google.com/local/writereview?placeid=${GOOGLE_PLACE_ID}` : null,
+      });
+    }
+
+    if (p === '/api/booking-slots' && req.method === 'GET') {
+      const date = sanitizeStr(url.searchParams.get('date'), 10);
+      const guests = Math.max(1, Math.min(20, parseInt(url.searchParams.get('guests'), 10) || 2));
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return sendJson(res, 400, { error: 'bad date' });
+      const slots = bookingSlots(date, guests);
+      if (!slots) return sendJson(res, 400, { error: 'bad date' });
+      return sendJson(res, 200, { date, guests, slots });
+    }
     if (p === '/api/pickup-slots' && req.method === 'GET') return sendJson(res, 200, { days: pickupSlots(), minLeadMin: MIN_LEAD_MIN });
 
     if (p === '/api/orders' && req.method === 'POST') {
@@ -561,8 +646,16 @@ const server = http.createServer(async (req, res) => {
       const body = await readJsonBody(req);
       try {
         const r = createReservation(body);
-        return sendJson(res, 201, { id: r.id, date: r.date, time: r.time, guests: r.guests });
+        return sendJson(res, 201, { id: r.id, token: r.token, date: r.date, time: r.time, guests: r.guests });
       } catch (e) { return sendJson(res, 400, { error: e.message }); }
+    }
+
+    // guest-facing booking status (polled by the confirmation view)
+    const mResv = p.match(/^\/api\/reservations\/([a-f0-9-]+)$/);
+    if (mResv && req.method === 'GET') {
+      const r = reservations.find(x => x.id === mResv[1]);
+      if (!r || !timingEqual(url.searchParams.get('token') || '', r.token || '')) return sendJson(res, 404, { error: 'not found' });
+      return sendJson(res, 200, { status: r.status, guests: r.guests, date: r.date, time: r.time });
     }
 
     // ---------- admin auth
@@ -642,9 +735,11 @@ const server = http.createServer(async (req, res) => {
         const body = await readJsonBody(req);
         const r = reservations.find(x => x.id === mRes[1]);
         if (!r || !['new', 'confirmed', 'cancelled'].includes(body.status)) return sendJson(res, 400, { error: 'bad request' });
+        const prev = r.status;
         r.status = body.status;
         saveJson('reservations.json', reservations);
         broadcast('reservation-status', { id: r.id, status: r.status });
+        if (prev === 'new' && (r.status === 'confirmed' || r.status === 'cancelled')) notifyReservation(r);
         return sendJson(res, 200, { ok: true });
       }
       if (p === '/api/admin/stream' && req.method === 'GET') {

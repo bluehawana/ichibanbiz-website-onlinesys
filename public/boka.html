@@ -54,8 +54,8 @@
           </div>
         </div>
         <div class="field">
-          <label for="b-time">Tid</label>
-          <select id="b-time" required></select>
+          <label>Välj en ledig tid</label>
+          <div class="slot-grid" id="b-slots" style="max-height:230px"><p class="muted">Laddar tider …</p></div>
         </div>
         <div class="field-row">
           <div class="field">
@@ -68,6 +68,10 @@
           </div>
         </div>
         <div class="field">
+          <label for="b-email">E-post för bekräftelse <span class="muted">(valfritt)</span></label>
+          <input id="b-email" type="email" autocomplete="email" maxlength="120" placeholder="namn@example.com">
+        </div>
+        <div class="field">
           <label for="b-note">Meddelande <span class="muted">(valfritt)</span></label>
           <textarea id="b-note" rows="2" maxlength="300" placeholder="Barnstol, allergi, firande …"></textarea>
         </div>
@@ -75,10 +79,11 @@
       </form>
 
       <div class="confirm-card" id="booked" hidden style="margin-top:2rem">
-        <div class="big">🎉</div>
-        <h2>Tack för din bokning!</h2>
+        <div class="big" id="booked-icon">🎉</div>
+        <h2 id="booked-title">Tack för din bokning!</h2>
         <p class="muted" id="booked-info" style="margin-top:0.8rem"></p>
-        <p class="form-note" style="margin-top:1.2rem">Vi hör av oss om tiden inte skulle fungera. Välkommen!</p>
+        <span class="status-pill" id="booked-status" style="margin-top:1rem">Mottagen — vi bekräftar strax</span>
+        <p class="form-note" id="booked-note" style="margin-top:1.2rem">Den här sidan uppdateras när restaurangen bekräftat bordet. Välkommen!</p>
       </div>
 
       <hr class="hairline" style="margin:3rem 0">
@@ -104,61 +109,104 @@
 <script>
 (function () {
   'use strict';
-  const HOURS = { 1: [11, 20], 2: [11, 20], 3: [11, 20], 4: [11, 20], 5: [11, 21], 6: [13, 21], 0: [15, 21] };
-  const dateEl = document.getElementById('b-date');
-  const timeEl = document.getElementById('b-time');
-  const today = new Date();
+  const $ = (id) => document.getElementById(id);
+  const dateEl = $('b-date'), guestsEl = $('b-guests'), slotsEl = $('b-slots');
   const pad = (n) => String(n).padStart(2, '0');
   const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const tt = (sv) => (window.I18N ? window.I18N.t(sv) : sv);
+  const today = new Date();
   dateEl.min = iso(today);
   const max = new Date(); max.setDate(max.getDate() + 60); dateEl.max = iso(max);
   dateEl.value = iso(today);
+  let selTime = null;
 
-  function fillTimes() {
-    const d = new Date(dateEl.value + 'T12:00');
-    if (isNaN(d)) return;
-    const [open, close] = HOURS[d.getDay()];
-    const isToday = dateEl.value === iso(new Date());
-    const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-    timeEl.innerHTML = '';
-    for (let m = open * 60; m <= close * 60 - 45; m += 15) {
-      if (isToday && m < nowMin + 30) continue;
-      const t = `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
-      timeEl.insertAdjacentHTML('beforeend', `<option>${t}</option>`);
+  // Wix-style availability grid: fully booked or passed times are crossed out
+  async function loadSlots() {
+    selTime = null;
+    slotsEl.innerHTML = '<p class="muted">…</p>';
+    try {
+      const res = await fetch(`/api/booking-slots?date=${encodeURIComponent(dateEl.value)}&guests=${encodeURIComponent(guestsEl.value)}`);
+      const data = await res.json();
+      if (!res.ok) throw 0;
+      if (!data.slots.some((s) => s.available)) {
+        slotsEl.innerHTML = `<p class="muted" style="grid-column:1/-1">${tt('Inga lediga tider den dagen — välj ett annat datum.')}</p>`;
+        return;
+      }
+      slotsEl.innerHTML = data.slots.map((s) =>
+        `<button type="button" data-t="${s.time}" class="${s.available ? '' : 'unavail'}" ${s.available ? '' : 'disabled aria-disabled="true"'}>${s.time}</button>`
+      ).join('');
+      slotsEl.querySelectorAll('button:not(.unavail)').forEach((b) => b.addEventListener('click', () => {
+        selTime = b.dataset.t;
+        slotsEl.querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b));
+      }));
+    } catch {
+      slotsEl.innerHTML = `<p class="muted" style="grid-column:1/-1">${tt('Kunde inte hämta tider — försök igen.')}</p>`;
     }
-    if (!timeEl.options.length) timeEl.innerHTML = '<option value="">Stängt — välj annan dag</option>';
   }
-  dateEl.addEventListener('change', fillTimes);
-  fillTimes();
+  dateEl.addEventListener('change', loadSlots);
+  guestsEl.addEventListener('change', loadSlots);
+  loadSlots();
+
+  // live status view: Mottagen -> Bekräftad / Kunde inte bekräftas
+  let pollTimer = null;
+  function showStatus(st) {
+    const en = window.I18N && window.I18N.lang === 'en';
+    const pill = $('booked-status');
+    pill.className = 'status-pill';
+    if (st === 'confirmed') {
+      pill.classList.add('ready');
+      pill.textContent = en ? 'Confirmed — welcome!' : 'Bekräftad — välkomna!';
+      $('booked-icon').textContent = '✅';
+      $('booked-note').textContent = en ? 'See you soon!' : 'Vi ses snart!';
+      clearInterval(pollTimer);
+    } else if (st === 'cancelled') {
+      pill.textContent = en ? 'Could not be confirmed' : 'Kunde inte bekräftas';
+      $('booked-icon').textContent = '📞';
+      $('booked-note').textContent = en ? 'Please call us at 031-83 17 86 and we will find a time.' : 'Ring oss gärna på 031-83 17 86 så hittar vi en tid.';
+      clearInterval(pollTimer);
+    } else {
+      pill.textContent = en ? 'Received — we will confirm shortly' : 'Mottagen — vi bekräftar strax';
+    }
+  }
 
   document.getElementById('booking').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const err = document.getElementById('form-error');
+    const err = $('form-error');
     err.classList.remove('show');
-    const btn = document.getElementById('b-submit');
-    btn.disabled = true; btn.textContent = 'Skickar …';
+    if (!selTime) {
+      err.textContent = tt('Välj en ledig tid.'); err.classList.add('show');
+      return;
+    }
+    const btn = $('b-submit');
+    btn.disabled = true; btn.textContent = '…';
     try {
       const res = await fetch('/api/reservations', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          guests: document.getElementById('b-guests').value,
+          guests: guestsEl.value,
           date: dateEl.value,
-          time: timeEl.value,
-          name: document.getElementById('b-name').value,
-          phone: document.getElementById('b-phone').value,
-          note: document.getElementById('b-note').value,
+          time: selTime,
+          name: $('b-name').value,
+          phone: $('b-phone').value,
+          email: $('b-email').value,
+          note: $('b-note').value,
+          lang: window.I18N ? window.I18N.lang : 'sv',
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Något gick fel — försök igen.');
       document.getElementById('booking').hidden = true;
-      document.getElementById('booked').hidden = false;
-      document.getElementById('booked-info').textContent =
-        `${data.guests} gäster · ${data.date} kl ${data.time}`;
-      document.getElementById('booked').scrollIntoView({ behavior: 'smooth' });
+      $('booked').hidden = false;
+      $('booked-info').textContent = `${data.guests} ${tt('gäster')} · ${data.date} kl ${data.time}`;
+      $('booked').scrollIntoView({ behavior: 'smooth' });
+      const poll = () => fetch(`/api/reservations/${data.id}?token=${data.token}`)
+        .then((r) => r.json()).then((s) => showStatus(s.status)).catch(() => {});
+      pollTimer = setInterval(poll, 15000);
+      poll();
     } catch (ex) {
       err.textContent = ex.message; err.classList.add('show');
-      btn.disabled = false; btn.textContent = 'Skicka bokningsförfrågan';
+      btn.disabled = false; btn.textContent = tt('Skicka bokningsförfrågan');
+      loadSlots(); // availability may have changed while typing
     }
   });
 })();
