@@ -13,6 +13,7 @@
   let cart = [];              // [{id, qty, option}]
   let slots = { days: [] };
   let selDay = null, selTime = null;
+  let serviceType = 'pickup'; // 'pickup' | 'dinein' (order-ahead to the table)
 
   // ---------- cart persistence ----------
   try { cart = JSON.parse(localStorage.getItem('ichiban-cart') || '[]'); } catch { cart = []; }
@@ -134,16 +135,44 @@
     const day = slots.days.find((d) => d.date === selDay);
     const grid = document.getElementById('slot-grid');
     if (!day) { grid.innerHTML = '<p class="muted">Inga tider tillgängliga just nu.</p>'; return; }
-    grid.innerHTML = day.slots.map((t) => `<button type="button" data-t="${esc(t)}" class="${t === selTime ? 'active' : ''}">${esc(t)}</button>`).join('');
-    grid.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { selTime = b.dataset.t; renderSlotGrid(); }));
+    if (!day.slots.length) { grid.innerHTML = `<p class="muted" style="grid-column:1/-1">${tt('Inga lediga tider den dagen — välj ett annat datum.')}</p>`; return; }
+    grid.innerHTML = day.slots.map((s) => {
+      const t = typeof s === 'string' ? s : s.time;
+      const avail = typeof s === 'string' ? true : s.available;
+      return `<button type="button" data-t="${esc(t)}" class="${t === selTime ? 'active' : ''} ${avail ? '' : 'unavail'}" ${avail ? '' : 'disabled'}>${esc(t)}</button>`;
+    }).join('');
+    grid.querySelectorAll('button:not(.unavail)').forEach((b) => b.addEventListener('click', () => { selTime = b.dataset.t; renderSlotGrid(); }));
   }
-  function loadSlots() {
-    return fetch('/api/pickup-slots').then((r) => r.json()).then((data) => {
-      slots = data;
-      if (!selDay && slots.days.length) selDay = slots.days[0].date;
-      renderSlotDays();
-    });
+  async function loadSlots() {
+    // pickup: plain lead-time slots. dine-in: table-capacity-aware slots per day.
+    const days = (await (await fetch('/api/pickup-slots')).json()).days;
+    if (serviceType === 'dinein') {
+      const guests = document.getElementById('f-guests').value;
+      for (const d of days) {
+        try {
+          const cap = await (await fetch(`/api/booking-slots?date=${d.date}&guests=${encodeURIComponent(guests)}`)).json();
+          const capMap = new Map(cap.slots.map((s) => [s.time, s.available]));
+          // only times that exist in both grids; carry availability from the capacity check
+          d.slots = d.slots.filter((t) => capMap.has(t)).map((t) => ({ time: t, available: capMap.get(t) }));
+        } catch { d.slots = d.slots.map((t) => ({ time: t, available: true })); }
+      }
+    }
+    slots = { days };
+    if (!selDay || !days.some((d) => d.date === selDay)) selDay = days.length ? days[0].date : null;
+    renderSlotDays();
   }
+
+  // service type toggle
+  document.querySelectorAll('#svc-toggle button').forEach((b) => b.addEventListener('click', () => {
+    serviceType = b.dataset.svc;
+    document.querySelectorAll('#svc-toggle button').forEach((x) => x.classList.toggle('active', x === b));
+    document.getElementById('guests-field').hidden = serviceType !== 'dinein';
+    document.getElementById('dinein-note').hidden = serviceType !== 'dinein';
+    document.getElementById('slot-label').textContent = serviceType === 'dinein' ? tt('Ankomsttid') : tt('Avhämtningstid');
+    selTime = null;
+    loadSlots();
+  }));
+  document.getElementById('f-guests').addEventListener('change', () => { selTime = null; loadSlots(); });
 
   // ---------- checkout ----------
   function showError(msg) {
@@ -171,6 +200,8 @@
           pickupDate: selDay,
           pickupTime: selTime,
           items: cart,
+          serviceType,
+          guests: serviceType === 'dinein' ? document.getElementById('f-guests').value : undefined,
           paymentMethod: CONFIG.onlinePayment && payRadio ? payRadio.value : 'pickup',
           lang: window.I18N ? window.I18N.lang : 'sv',
         }),

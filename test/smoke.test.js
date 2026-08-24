@@ -159,6 +159,51 @@ test('booking status token flow', async () => {
   assert.equal((await fetch(`${B}/api/reservations/${r.id}?token=fel`)).status, 404);
 });
 
+// ---------------------------------------------------------------- dine-in order-ahead
+test('dine-in order reserves a table and links it to the order', async () => {
+  const menu = await (await fetch(B + '/api/menu')).json();
+  const item = menu.categories[0].items[0];
+  const r = await post('/api/orders', {
+    name: 'Dinein CI', phone: '0705550001', items: [{ id: item.id, qty: 1 }],
+    pickupDate: DATE, pickupTime: '13:00', serviceType: 'dinein', guests: 4, lang: 'sv',
+  });
+  assert.equal(r.status, 201);
+  const o = await r.json();
+
+  // customer view carries dine-in details
+  const st = await (await fetch(`${B}/api/orders/${o.id}?token=${o.token}`)).json();
+  assert.equal(st.serviceType, 'dinein');
+  assert.equal(st.guests, 4);
+
+  // the table is held: capacity at 13:00 drops by 4 (visible via booking slots)
+  const login = await post('/api/admin/login', { pin: '9999' });
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  const resv = await (await fetch(B + '/api/admin/reservations', { headers: { cookie } })).json();
+  const linked = resv.reservations.find((x) => x.name === 'Dinein CI');
+  assert.ok(linked, 'linked reservation exists');
+  assert.equal(linked.status, 'confirmed');
+  assert.equal(linked.guests, 4);
+  assert.ok(linked.note.includes('#' + o.number), 'reservation references the order');
+
+  // cancelling the order releases the table
+  await fetch(`${B}/api/admin/orders/${o.id}/status`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ status: 'cancelled' }),
+  });
+  const resv2 = await (await fetch(B + '/api/admin/reservations', { headers: { cookie } })).json();
+  assert.equal(resv2.reservations.find((x) => x.id === linked.id).status, 'cancelled', 'table released on cancel');
+});
+
+test('dine-in respects table capacity', async () => {
+  const menu = await (await fetch(B + '/api/menu')).json();
+  const item = menu.categories[0].items[0];
+  // 18:00 window is already full from the booking capacity test (38 + 2 = 40 guests)
+  const r = await post('/api/orders', {
+    name: 'För Många', phone: '0705550002', items: [{ id: item.id, qty: 1 }],
+    pickupDate: DATE, pickupTime: '18:00', serviceType: 'dinein', guests: 6,
+  });
+  assert.equal(r.status, 400, 'full table window rejected for dine-in orders');
+});
+
 test('booking validation: outside hours and past dates rejected', async () => {
   assert.equal((await post('/api/reservations', { name: 'X Y', phone: '0701111111', guests: 2, date: DATE, time: '23:00' })).status, 400);
   assert.equal((await post('/api/reservations', { name: 'X Y', phone: '0701111111', guests: 2, date: '2020-01-01', time: '18:00' })).status, 400);

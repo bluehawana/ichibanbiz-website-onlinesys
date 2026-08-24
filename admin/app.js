@@ -75,12 +75,14 @@
       ready: `<button class="b-done" data-a="done">✓ Uthämtad</button>`,
       done: '', cancelled: '',
     }[o.status] || '') + refundBtn;
+    const dinein = o.serviceType === 'dinein';
     return `<div class="card ${o.status === 'new' ? 'new' : ''}" data-id="${esc(o.id)}" data-kind="order">
       <div class="row">
         <span class="num">#${o.number}</span>
-        <span class="pickup">Hämtas ${esc(o.pickup.time)}</span>
+        <span class="pickup">${dinein ? `🍽 ÄT HÄR · ${o.guests} gäster · ankomst ${esc(o.pickup.time)}` : `📦 Hämtas ${esc(o.pickup.time)}`}</span>
         <span class="st ${esc(o.status)}">${st}</span>
       </div>
+      ${dinein ? '<p class="meta" style="color:var(--gold);font-weight:600">Bord reserverat automatiskt — duka och servera vid ankomst</p>' : ''}
       <p class="meta">${esc(o.customer.name)} · <a href="tel:${esc(o.customer.phone)}">${esc(o.customer.phone)}</a> · inkom ${fmtTime(o.createdAt)}</p>
       <div class="lines">
         ${o.lines.map((l) => `<div><span><span class="q">${l.qty} ×</span> ${esc(l.name)}${l.option ? ' · ' + esc(l.option) : ''}</span><span>${l.lineTotal} kr</span></div>`).join('')}

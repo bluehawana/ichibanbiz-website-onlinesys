@@ -55,10 +55,13 @@
   };
   function render(o) {
     const lang = (window.I18N && window.I18N.lang) === 'en' ? 'en' : 'sv';
+    const dinein = o.serviceType === 'dinein';
     const L = lang === 'en'
-      ? { nr: 'Order no.', pickup: 'Pickup:', at: 'at', total: 'Total:', paid: 'paid online ✓', paylater: 'pay in the restaurant (card/Swish)', save: 'Keep this page open — it updates when your food is ready.' }
-      : { nr: 'Beställning nr', pickup: 'Avhämtning:', at: 'kl', total: 'Summa:', paid: 'betald online ✓', paylater: 'betalas i restaurangen (kort/Swish)', save: 'Spara den här sidan — den uppdateras när maten är klar.' };
-    const st = STATUS[lang][o.status] || STATUS[lang].new;
+      ? { nr: 'Order no.', pickup: dinein ? `Table for ${o.guests} — arrival:` : 'Pickup:', at: 'at', total: 'Total:', paid: 'paid online ✓', paylater: 'pay in the restaurant (card/Swish)', save: dinein ? 'Your table is reserved — the food is served minutes after you arrive.' : 'Keep this page open — it updates when your food is ready.' }
+      : { nr: 'Beställning nr', pickup: dinein ? `Bord för ${o.guests} — ankomst:` : 'Avhämtning:', at: 'kl', total: 'Summa:', paid: 'betald online ✓', paylater: 'betalas i restaurangen (kort/Swish)', save: dinein ? 'Ert bord är reserverat — maten serveras några minuter efter att ni kommit.' : 'Spara den här sidan — den uppdateras när maten är klar.' };
+    let st = STATUS[lang][o.status] || STATUS[lang].new;
+    if (dinein && o.status === 'accepted') st = lang === 'en' ? ['Confirmed — your table is reserved', 'The kitchen preps your food for your arrival time.'] : ['Bekräftad — ert bord är reserverat', 'Köket förbereder maten till er ankomsttid.'];
+    if (dinein && o.status === 'ready') st = lang === 'en' ? ['Everything is ready — welcome!', 'Your table is set.'] : ['Allt är framdukat — välkomna!', 'Ert bord står redo.'];
     card.innerHTML = `
       <div class="big">${o.status === 'ready' ? '🍣' : o.status === 'cancelled' ? '✕' : '✔'}</div>
       <p class="kicker">${L.nr}</p>
