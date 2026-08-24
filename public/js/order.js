@@ -19,6 +19,20 @@
   try { cart = JSON.parse(localStorage.getItem('ichiban-cart') || '[]'); } catch { cart = []; }
   const persist = () => { try { localStorage.setItem('ichiban-cart', JSON.stringify(cart)); } catch {} };
 
+  // Back from Stripe without paying (cancel button or browser back): say so, keep
+  // the cart, offer a way out. Nothing has been charged at this point.
+  if (new URLSearchParams(location.search).get('cancelled')) {
+    const en = window.I18N && window.I18N.lang === 'en';
+    const box = document.getElementById('pay-cancelled');
+    if (box) {
+      box.innerHTML = en
+        ? '<b>Payment cancelled.</b> Nothing has been charged. Your dishes are still in the cart — try again whenever you like, or <a href="/">go back to the start page</a>.'
+        : '<b>Betalningen avbröts.</b> Inget har dragits. Dina rätter finns kvar i varukorgen — försök igen när du vill, eller <a href="/">gå till startsidan</a>.';
+      box.hidden = false;
+    }
+    history.replaceState(null, '', location.pathname); // a reload shouldn't repeat the notice
+  }
+
   const keyOf = (id, option) => id + (option ? '::' + option : '');
   function addToCart(id, option) {
     const k = keyOf(id, option);
@@ -208,7 +222,10 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Något gick fel — försök igen.');
-      cart = []; persist();
+      // Keep the cart until the payment is actually done: if the customer backs out of
+      // Stripe (or just wanted to look), /bestall still has their dishes. The
+      // confirmation page clears it.
+      if (!data.payUrl) { cart = []; persist(); }
       // online payment: hand over to Stripe's hosted checkout; otherwise straight to confirmation
       location.href = data.payUrl || `/order?id=${encodeURIComponent(data.id)}&token=${encodeURIComponent(data.token)}`;
     } catch (err) {

@@ -229,13 +229,22 @@ function stripeRequest(method, apiPath, formParams, extraHeaders) {
   });
 }
 
-async function createCheckoutSession(order) {
+// Where to send the customer back after Stripe. The browser's Origin header is
+// the address the customer is actually using (test port today, ichiban.biz after
+// cutover) — BASE_URL is only the fallback, so a stale BASE_URL can never strand
+// a customer on a 404 page.
+function returnOrigin(req) {
+  const o = req && req.headers.origin;
+  return o && /^https?:\/\/[^/\s]+$/.test(o) ? o : BASE_URL;
+}
+
+async function createCheckoutSession(order, origin = BASE_URL) {
   const params = {
     mode: 'payment',
     // no payment_method_types: the Stripe dashboard decides (cards, Apple Pay,
     // Google Pay, Klarna, ...) — enable/disable methods there, no code change.
-    success_url: `${BASE_URL}/order?id=${order.id}&token=${order.token}`,
-    cancel_url: `${BASE_URL}/bestall?cancelled=1`,
+    success_url: `${origin}/order?id=${order.id}&token=${order.token}`,
+    cancel_url: `${origin}/bestall?cancelled=1`,
     'metadata[order_id]': order.id,
     locale: order.lang === 'en' ? 'en' : 'sv',
     expires_at: String(Math.floor(Date.now() / 1000) + 35 * 60), // 35 min (Stripe minimum is 30)
@@ -750,7 +759,7 @@ const server = http.createServer(async (req, res) => {
         }
         if (order.paymentMethod === 'online') {
           try {
-            const session = await createCheckoutSession(order);
+            const session = await createCheckoutSession(order, returnOrigin(req));
             order.stripeSessionId = session.id;
             saveJson('orders.json', orders);
             payUrl = session.url;

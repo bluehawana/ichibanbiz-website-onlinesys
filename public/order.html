@@ -94,7 +94,7 @@
   function load() {
     fetch(`/api/orders/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`)
       .then((r) => { if (!r.ok) throw 0; return r.json(); })
-      .then(render)
+      .then((o) => { try { localStorage.removeItem('ichiban-cart'); } catch {} render(o); }) // order exists → cart is done
       .catch(() => { card.innerHTML = '<p class="muted">Beställningen hittades inte. <a href="/bestall" style="color:var(--aka-ink)">Gör en ny beställning</a></p>'; });
   }
   if (!id || !token) { card.innerHTML = '<p class="muted">Ogiltig länk. <a href="/bestall" style="color:var(--aka-ink)">Till beställningen</a></p>'; return; }

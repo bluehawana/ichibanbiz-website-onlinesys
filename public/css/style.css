@@ -357,6 +357,9 @@ section.block.tight { padding: 3.5rem 0; }
 @media (max-width: 520px) { .field-row { grid-template-columns: 1fr; } }
 .form-error { background: rgba(195,48,46,0.14); border: 1px solid rgba(195,48,46,0.55); color: #eb9b8a; border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 1rem; font-size: 0.93rem; display: none; }
 .form-error.show { display: block; }
+.notice { background: rgba(226,177,60,0.12); border: 1px solid rgba(226,177,60,0.5); color: var(--ink); border-radius: 10px; padding: 0.8rem 1.1rem; margin-top: 1.4rem; font-size: 0.95rem; line-height: 1.5; }
+.notice a { color: var(--gold); font-weight: 600; }
+.notice[hidden] { display: none; }
 .form-note { color: var(--ink-faint); font-size: 0.85rem; }
 
 /* service type: takeaway vs dine-in order-ahead */
