@@ -1,6 +1,6 @@
 {
   "currency": "kr",
-  "note": "Serveringstider: mån–tor 11:00–20:00, fre 11:00–21:00, lör 13:00–21:00, sön 15:00–21:00",
+  "note": "Serveringstider: mån–tor 11:00–20:00, fre 11:00–21:00, lör 12:00–21:00, sön 15:00–21:00",
   "categories": [
     {
       "id": "forratter",
@@ -428,6 +428,51 @@
       "id": "nigiri-combo",
       "name": "Nigiri combo",
       "items": [
+        {
+          "id": "nigiri-val-6",
+          "name": "6 bitar nigiri — fritt val",
+          "name_en": "6 pieces nigiri — free choice",
+          "desc": "Fritt val av nigiri: lax, räka, tonfisk, tilapia, avokado, tofu, crabfish",
+          "desc_en": "Free choice of nigiri: salmon, shrimp, tuna, tilapia, avocado, tofu, crab fish",
+          "price": 99,
+          "tags": []
+        },
+        {
+          "id": "nigiri-val-8",
+          "name": "8 bitar nigiri — fritt val",
+          "name_en": "8 pieces nigiri — free choice",
+          "desc": "Fritt val av nigiri: lax, räka, tonfisk, tilapia, avokado, tofu, crabfish",
+          "desc_en": "Free choice of nigiri: salmon, shrimp, tuna, tilapia, avocado, tofu, crab fish",
+          "price": 129,
+          "tags": []
+        },
+        {
+          "id": "nigiri-val-10",
+          "name": "10 bitar nigiri — fritt val",
+          "name_en": "10 pieces nigiri — free choice",
+          "desc": "Fritt val av nigiri: lax, räka, tonfisk, tilapia, avokado, tofu, crabfish",
+          "desc_en": "Free choice of nigiri: salmon, shrimp, tuna, tilapia, avocado, tofu, crab fish",
+          "price": 159,
+          "tags": []
+        },
+        {
+          "id": "nigiri-val-12",
+          "name": "12 bitar nigiri — fritt val",
+          "name_en": "12 pieces nigiri — free choice",
+          "desc": "Fritt val av nigiri: lax, räka, tonfisk, tilapia, avokado, tofu, crabfish",
+          "desc_en": "Free choice of nigiri: salmon, shrimp, tuna, tilapia, avocado, tofu, crab fish",
+          "price": 179,
+          "tags": []
+        },
+        {
+          "id": "nigiri-val-15",
+          "name": "15 bitar nigiri — fritt val",
+          "name_en": "15 pieces nigiri — free choice",
+          "desc": "Fritt val av nigiri: lax, räka, tonfisk, tilapia, avokado, tofu, crabfish",
+          "desc_en": "Free choice of nigiri: salmon, shrimp, tuna, tilapia, avocado, tofu, crab fish",
+          "price": 210,
+          "tags": []
+        },
         {
           "id": "nigiri-10-lax-avokado",
           "name": "10 bitar lax och avokado",
@@ -1247,5 +1292,5 @@
       "name_en": "Extras"
     }
   ],
-  "note_en": "Serving hours: Mon–Thu 11:00–20:00, Fri 11:00–21:00, Sat 13:00–21:00, Sun 15:00–21:00"
+  "note_en": "Serving hours: Mon–Thu 11:00–20:00, Fri 11:00–21:00, Sat 12:00–21:00, Sun 15:00–21:00"
 }

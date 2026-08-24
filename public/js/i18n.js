@@ -95,7 +95,7 @@
     'hero.lead': 'Our ingredients are carefully selected quality products. Sushi, poké bowls, bibimbap and dumplings — dine with us or take away.',
     'order.lead': 'Add dishes, choose a pickup time and pay when you collect — or pay online by card. Earliest pickup is 30 minutes after ordering.',
     'order.paynote': 'Show your order number at the counter. Pay in the restaurant by card or Swish — or online if you chose card payment.',
-    'menu.lead': 'Serving hours: Mon–Thu 11–20, Fri 11–21, Sat 13–21, Sun 15–21. Everything can also be ordered for pickup.',
+    'menu.lead': 'Serving hours: Mon–Thu 11–20, Fri 11–21, Sat 12–21, Sun 15–21. Everything can also be ordered for pickup.',
     'boka.lead': 'Fill in your details and we\'ll find the best table for you. We\'ll call if the time needs adjusting. For groups larger than 8 — call us at 031-83 17 86.',
     'om.p1': 'Welcome to Ichiban Sushi — a restaurant run by the couple Hongzhi and Yan. Our journey began in China, where we married and shared a passion for good food. In 2016 we moved to Gothenburg, where Hongzhi took a second master\'s degree at the University of Gothenburg.',
     'om.p2': 'In 2017 we took over the charming Ichiban Sushi Bar on Södra Vägen, driven by our love of Asian cuisine and the ambition to create a truly great dining experience. Through hard work and uncompromising quality we reached Gothenburg\'s top five sushi restaurants within four years — growing 15% per year between 2017 and 2020.',

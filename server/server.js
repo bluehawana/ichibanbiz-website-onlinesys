@@ -60,7 +60,7 @@ const HOURS = {
   3: [11 * 60, 20 * 60], // ons
   4: [11 * 60, 20 * 60], // tor
   5: [11 * 60, 21 * 60], // fre
-  6: [13 * 60, 21 * 60], // lör
+  6: [12 * 60, 21 * 60], // lör
   0: [15 * 60, 21 * 60], // sön
 };
 const SLOT_STEP_MIN = 15;
@@ -527,7 +527,7 @@ function receiptHtml(o) {
   const rows = o.lines.map((l) => `<tr><td style="padding:6px 0">${l.qty} × ${esc(l.name)}${l.option ? ' · ' + esc(l.option) : ''}</td><td align="right">${l.lineTotal} kr</td></tr>`).join('');
   return `<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;color:#26211a">
     <div style="text-align:center;padding:6px 0 14px"><img src="${BASE_URL}/assets/img/site/logo-192.png" alt="Ichiban Sushi" width="84" height="84" style="display:inline-block"></div>
-    <div style="background:#cf3f2b;color:#fff;border-radius:10px;padding:18px 22px">
+    <div style="background:#c1121f;color:#fff;border-radius:10px;padding:18px 22px">
       <div style="font-size:22px;font-weight:bold">Ichiban Sushi</div>
       <div style="opacity:.85;font-size:13px">Södra Vägen 91, 412 63 Göteborg · 031-83 17 86</div>
     </div>
@@ -543,7 +543,7 @@ function receiptHtml(o) {
         <tr><td style="font-size:17px;font-weight:bold;padding-top:6px">${en ? 'Total' : 'Summa'}</td><td align="right" style="font-size:17px;font-weight:bold;padding-top:6px">${o.total} kr</td></tr>
       </table>
       <p style="font-size:13px;color:#666">${o.paid ? (en ? 'Paid online.' : 'Betald online.') : (en ? 'Payment at pickup (card/Swish).' : 'Betalas vid avhämtning (kort/Swish).')}
-      ${en ? 'Order status' : 'Beställningsstatus'}: <a href="${BASE_URL}/order?id=${o.id}&token=${o.token}" style="color:#cf3f2b">${BASE_URL}/order</a></p>
+      ${en ? 'Order status' : 'Beställningsstatus'}: <a href="${BASE_URL}/order?id=${o.id}&token=${o.token}" style="color:#c1121f">${BASE_URL}/order</a></p>
       <p style="font-size:12px;color:#999">${en ? 'Digital receipt — nothing to print. Welcome back!' : 'Digitalt kvitto — inget att skriva ut. Välkommen åter!'} いらっしゃいませ</p>
     </div>
   </div>`;
@@ -656,7 +656,7 @@ function notifyReservation(r) {
       from: RECEIPT_FROM, to: [r.email], subject,
       html: `<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;color:#26211a">
         <div style="text-align:center;padding:6px 0 14px"><img src="${BASE_URL}/assets/img/site/logo-192.png" alt="Ichiban Sushi" width="84" height="84" style="display:inline-block"></div>
-        <div style="background:#cf3f2b;color:#fff;border-radius:10px;padding:18px 22px">
+        <div style="background:#c1121f;color:#fff;border-radius:10px;padding:18px 22px">
           <div style="font-size:22px;font-weight:bold">Ichiban Sushi</div>
           <div style="opacity:.85;font-size:13px">Södra Vägen 91, 412 63 Göteborg · 031-83 17 86</div>
         </div>
