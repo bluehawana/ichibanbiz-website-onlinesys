@@ -78,6 +78,7 @@ before(async () => {
       RESEND_API_KEY: '', ELKS_API_USER: '', ELKS_API_PASSWORD: '',
       SWISH_PAYEE_ALIAS: '1231111111',
       SWISH_BASE_URL: `http://localhost:${MOCK_SWISH_PORT}`,
+      TZ: 'America/New_York', // simulate a mis-zoned VPS — the app must still think in Stockholm time
     },
     stdio: 'ignore',
   });
@@ -296,6 +297,20 @@ test('declined swish releases a dine-in table', async () => {
   const resv = await (await fetch(B + '/api/admin/reservations', { headers: { cookie } })).json();
   const linked = resv.reservations.find((x) => x.name === 'Swish Nej');
   assert.equal(linked.status, 'cancelled', 'linked table released');
+});
+
+test('pickup slots follow restaurant time even on a mis-zoned server', async () => {
+  // what time is it in Göteborg right now?
+  const parts = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+  const [nh, nm] = parts.split(':').map(Number);
+  const nowMin = nh * 60 + nm;
+  const { days } = await (await fetch(B + '/api/pickup-slots')).json();
+  const today = days.find((d) => d.label === 'Idag');
+  if (!today) return; // closed for the day in Sweden — nothing to assert
+  for (const t of today.slots) {
+    const [h, m] = t.split(':').map(Number);
+    assert.ok(h * 60 + m >= nowMin + 29, `slot ${t} is in the past (Stockholm now ${parts})`);
+  }
 });
 
 test('booking validation: outside hours and past dates rejected', async () => {

@@ -11,6 +11,11 @@
  */
 'use strict';
 
+// All times (opening hours, pickup slots, bookings) are restaurant-local.
+// Pin the process to the restaurant's timezone no matter where the server runs
+// — a VPS on UTC/EDT must never offer pickup times that are already past in Göteborg.
+process.env.TZ = process.env.RESTAURANT_TZ || 'Europe/Stockholm';
+
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
@@ -521,8 +526,9 @@ function receiptHtml(o) {
   const vat = Math.round(o.total * VAT_RATE / (1 + VAT_RATE));
   const rows = o.lines.map((l) => `<tr><td style="padding:6px 0">${l.qty} × ${esc(l.name)}${l.option ? ' · ' + esc(l.option) : ''}</td><td align="right">${l.lineTotal} kr</td></tr>`).join('');
   return `<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;color:#26211a">
+    <div style="text-align:center;padding:6px 0 14px"><img src="${BASE_URL}/assets/img/site/logo-192.png" alt="Ichiban Sushi" width="84" height="84" style="display:inline-block"></div>
     <div style="background:#cf3f2b;color:#fff;border-radius:10px;padding:18px 22px">
-      <div style="font-size:22px;font-weight:bold">一番 Ichiban Sushi</div>
+      <div style="font-size:22px;font-weight:bold">Ichiban Sushi</div>
       <div style="opacity:.85;font-size:13px">Södra Vägen 91, 412 63 Göteborg · 031-83 17 86</div>
     </div>
     <div style="padding:20px 6px">
@@ -649,8 +655,9 @@ function notifyReservation(r) {
     const body = JSON.stringify({
       from: RECEIPT_FROM, to: [r.email], subject,
       html: `<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;color:#26211a">
+        <div style="text-align:center;padding:6px 0 14px"><img src="${BASE_URL}/assets/img/site/logo-192.png" alt="Ichiban Sushi" width="84" height="84" style="display:inline-block"></div>
         <div style="background:#cf3f2b;color:#fff;border-radius:10px;padding:18px 22px">
-          <div style="font-size:22px;font-weight:bold">一番 Ichiban Sushi</div>
+          <div style="font-size:22px;font-weight:bold">Ichiban Sushi</div>
           <div style="opacity:.85;font-size:13px">Södra Vägen 91, 412 63 Göteborg · 031-83 17 86</div>
         </div>
         <div style="padding:20px 6px"><p style="font-size:16px">${smsText.replace('Ichiban Sushi: ', '')}</p></div>
