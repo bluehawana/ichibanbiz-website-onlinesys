@@ -166,11 +166,13 @@
         body: JSON.stringify({
           name: document.getElementById('f-name').value,
           phone: document.getElementById('f-phone').value,
+          email: document.getElementById('f-email').value,
           note: document.getElementById('f-note').value,
           pickupDate: selDay,
           pickupTime: selTime,
           items: cart,
           paymentMethod: CONFIG.onlinePayment && payRadio ? payRadio.value : 'pickup',
+          lang: window.I18N ? window.I18N.lang : 'sv',
         }),
       });
       const data = await res.json();

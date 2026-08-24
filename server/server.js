@@ -180,7 +180,7 @@ function broadcast(event, data) {
 setInterval(() => broadcast('ping', { t: Date.now() }), 25000).unref();
 
 // ---------------------------------------------------------------- stripe (plain REST — no SDK)
-function stripeRequest(method, apiPath, formParams) {
+function stripeRequest(method, apiPath, formParams, extraHeaders) {
   return new Promise((resolve, reject) => {
     const body = formParams ? new URLSearchParams(formParams).toString() : '';
     const req = https.request({
@@ -189,6 +189,7 @@ function stripeRequest(method, apiPath, formParams) {
         Authorization: 'Bearer ' + STRIPE_SECRET_KEY,
         'Content-Type': 'application/x-www-form-urlencoded',
         'Content-Length': Buffer.byteLength(body),
+        ...(extraHeaders || {}),
       },
     }, (res) => {
       let data = '';
@@ -210,21 +211,58 @@ function stripeRequest(method, apiPath, formParams) {
 async function createCheckoutSession(order) {
   const params = {
     mode: 'payment',
-    'payment_method_types[0]': 'card',
+    // no payment_method_types: the Stripe dashboard decides (cards, Apple Pay,
+    // Google Pay, Klarna, ...) — enable/disable methods there, no code change.
     success_url: `${BASE_URL}/order?id=${order.id}&token=${order.token}`,
     cancel_url: `${BASE_URL}/bestall?cancelled=1`,
     'metadata[order_id]': order.id,
+    locale: order.lang === 'en' ? 'en' : 'sv',
     expires_at: String(Math.floor(Date.now() / 1000) + 35 * 60), // 35 min (Stripe minimum is 30)
   };
+  if (order.customer.email) params.customer_email = order.customer.email; // Stripe emails the receipt
   order.lines.forEach((l, i) => {
     params[`line_items[${i}][quantity]`] = String(l.qty);
     params[`line_items[${i}][price_data][currency]`] = 'sek';
     params[`line_items[${i}][price_data][unit_amount]`] = String(l.unitPrice * 100);
     params[`line_items[${i}][price_data][product_data][name]`] = l.name + (l.option ? ` (${l.option})` : '');
   });
-  const session = await stripeRequest('POST', '/v1/checkout/sessions', params);
+  // idempotency key: a network retry can never create two sessions for one order
+  const session = await stripeRequest('POST', '/v1/checkout/sessions', params, { 'Idempotency-Key': 'order-' + order.id });
   return session; // session.url is the hosted payment page
 }
+
+// Webhook-independent safety net: ask Stripe directly about a pending order.
+// Even if the webhook never arrives, a paid order becomes visible to the kitchen.
+async function reconcileOrder(o) {
+  if (!o || o.status !== 'pending_payment' || !o.stripeSessionId) return;
+  try {
+    const session = await stripeRequest('GET', `/v1/checkout/sessions/${o.stripeSessionId}`);
+    if (session.payment_status === 'paid') {
+      markOrderPaid(o.id, session.payment_intent);
+    } else if (session.status === 'expired') {
+      o.status = 'cancelled';
+      o.updatedAt = new Date().toISOString();
+      saveJson('orders.json', orders);
+    }
+  } catch (e) { console.error('reconcile failed for #' + o.number + ':', e.message); }
+}
+
+// Sweep every minute: reconcile pending payments; cancel anything stuck > 45 min.
+setInterval(() => {
+  if (!ONLINE_PAYMENT) return;
+  const now = Date.now();
+  for (const o of orders) {
+    if (o.status !== 'pending_payment') continue;
+    const ageMin = (now - new Date(o.createdAt).getTime()) / 60000;
+    if (ageMin > 45) {
+      o.status = 'cancelled';
+      o.updatedAt = new Date().toISOString();
+      saveJson('orders.json', orders);
+    } else if (ageMin > 2) {
+      reconcileOrder(o);
+    }
+  }
+}, 60000).unref();
 
 function verifyStripeSignature(rawBody, sigHeader) {
   // header: t=timestamp,v1=signature[,v1=...]
@@ -243,7 +281,7 @@ function verifyStripeSignature(rawBody, sigHeader) {
 }
 
 // ---------------------------------------------------------------- orders
-function sanitizeStr(s, max = 200) { return String(s || '').replace(/[ -]/g, ' ').trim().slice(0, max); }
+function sanitizeStr(s, max = 200) { return String(s || '').replace(/[\x00-\x1f]/g, ' ').trim().slice(0, max); }
 
 function createOrder(body) {
   const name = sanitizeStr(body.name, 80);
@@ -282,6 +320,7 @@ function createOrder(body) {
     status: wantsOnline ? 'pending_payment' : 'new',
     paid: false,
     paymentMethod: wantsOnline ? 'online' : 'pickup',
+    lang: body.lang === 'en' ? 'en' : 'sv',
     customer: { name, phone, email },
     note,
     pickup: { date: pickupDate, time: pickupTime },
@@ -293,27 +332,102 @@ function createOrder(body) {
   if (!wantsOnline) {
     // pay-at-pickup: the kitchen hears about it immediately
     broadcast('order', publicAdminOrder(order));
+    sendReceipt(order); // confirmation with receipt link (email/sms if configured)
   }
   console.log(`ORDER #${order.number} (${order.paymentMethod}) ${name} ${phone} — ${total} kr @ ${pickupDate} ${pickupTime}`);
   return order;
 }
 
-function markOrderPaid(orderId) {
+function markOrderPaid(orderId, paymentIntent) {
   const o = orders.find((x) => x.id === orderId);
   if (!o || o.paid) return;
   o.paid = true;
+  if (paymentIntent) o.paymentIntent = paymentIntent; // needed for refunds
   if (o.status === 'pending_payment') o.status = 'new';
   o.updatedAt = new Date().toISOString();
   saveJson('orders.json', orders);
   broadcast('order', publicAdminOrder(o)); // now the kitchen alarm rings
+  sendReceipt(o);
   console.log(`PAID   #${o.number} — ${o.total} kr (Stripe)`);
 }
 
 function publicAdminOrder(o) {
-  return { id: o.id, number: o.number, createdAt: o.createdAt, status: o.status, paid: o.paid, paymentMethod: o.paymentMethod, customer: o.customer, note: o.note, pickup: o.pickup, lines: o.lines, total: o.total };
+  return { id: o.id, number: o.number, createdAt: o.createdAt, status: o.status, paid: o.paid, refunded: !!o.refunded, canRefund: !!(o.paid && o.paymentIntent && !o.refunded), paymentMethod: o.paymentMethod, customer: o.customer, note: o.note, pickup: o.pickup, lines: o.lines, total: o.total };
 }
 function publicCustomerOrder(o) {
-  return { number: o.number, status: o.status, paid: o.paid, paymentMethod: o.paymentMethod, pickup: o.pickup, lines: o.lines, total: o.total, createdAt: o.createdAt };
+  return { number: o.number, status: o.status, paid: o.paid, refunded: !!o.refunded, paymentMethod: o.paymentMethod, pickup: o.pickup, lines: o.lines, total: o.total, createdAt: o.createdAt };
+}
+
+// ---------------------------------------------------------------- receipts (email/SMS — both optional)
+// Email via Resend (resend.com, RESEND_API_KEY + RECEIPT_FROM), SMS via 46elks
+// (46elks.com, ELKS_API_USER + ELKS_API_PASSWORD). Without keys: silently skipped —
+// Stripe's own receipt still covers online payments.
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const RECEIPT_FROM = process.env.RECEIPT_FROM || 'Ichiban Sushi <kvitto@ichiban.biz>';
+const ELKS_USER = process.env.ELKS_API_USER || '';
+const ELKS_PASS = process.env.ELKS_API_PASSWORD || '';
+const SMS_ON_READY = process.env.SMS_ON_READY === '1'; // text the customer when food is ready
+const VAT_RATE = 0.12; // Swedish takeaway food VAT
+
+function httpsJson(hostname, apiPath, headers, body) {
+  return new Promise((resolve, reject) => {
+    const req = https.request({ hostname, path: apiPath, method: 'POST', headers }, (res) => {
+      let d = ''; res.on('data', (c) => (d += c));
+      res.on('end', () => (res.statusCode < 400 ? resolve(d) : reject(new Error(`${hostname} ${res.statusCode}: ${d.slice(0, 200)}`))));
+    });
+    req.on('error', reject);
+    req.setTimeout(10000, () => req.destroy(new Error(hostname + ' timeout')));
+    req.end(body);
+  });
+}
+
+function receiptHtml(o) {
+  const en = o.lang === 'en';
+  const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const vat = Math.round(o.total * VAT_RATE / (1 + VAT_RATE));
+  const rows = o.lines.map((l) => `<tr><td style="padding:6px 0">${l.qty} × ${esc(l.name)}${l.option ? ' · ' + esc(l.option) : ''}</td><td align="right">${l.lineTotal} kr</td></tr>`).join('');
+  return `<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;color:#26211a">
+    <div style="background:#cf3f2b;color:#fff;border-radius:10px;padding:18px 22px">
+      <div style="font-size:22px;font-weight:bold">一番 Ichiban Sushi</div>
+      <div style="opacity:.85;font-size:13px">Södra Vägen 91, 412 63 Göteborg · 031-83 17 86</div>
+    </div>
+    <div style="padding:20px 6px">
+      <p style="font-size:16px">${en ? 'Thank you for your order' : 'Tack för din beställning'}, ${esc(o.customer.name)}!</p>
+      <p><b>${en ? 'Order' : 'Beställning'} #${o.number}</b> — ${en ? 'pickup' : 'avhämtning'} ${esc(o.pickup.date)} ${en ? 'at' : 'kl'} ${esc(o.pickup.time)}</p>
+      <table width="100%" style="border-top:1px solid #ddd;border-bottom:1px solid #ddd;margin:12px 0;font-size:14px">${rows}</table>
+      <table width="100%" style="font-size:14px">
+        <tr><td>${en ? 'VAT (12%) included' : 'Varav moms (12 %)'}</td><td align="right">${vat} kr</td></tr>
+        <tr><td style="font-size:17px;font-weight:bold;padding-top:6px">${en ? 'Total' : 'Summa'}</td><td align="right" style="font-size:17px;font-weight:bold;padding-top:6px">${o.total} kr</td></tr>
+      </table>
+      <p style="font-size:13px;color:#666">${o.paid ? (en ? 'Paid online.' : 'Betald online.') : (en ? 'Payment at pickup (card/Swish).' : 'Betalas vid avhämtning (kort/Swish).')}
+      ${en ? 'Order status' : 'Beställningsstatus'}: <a href="${BASE_URL}/order?id=${o.id}&token=${o.token}" style="color:#cf3f2b">${BASE_URL}/order</a></p>
+      <p style="font-size:12px;color:#999">${en ? 'Digital receipt — nothing to print. Welcome back!' : 'Digitalt kvitto — inget att skriva ut. Välkommen åter!'} いらっしゃいませ</p>
+    </div>
+  </div>`;
+}
+
+function sendReceipt(o) {
+  if (RESEND_API_KEY && o.customer.email) {
+    const en = o.lang === 'en';
+    const body = JSON.stringify({
+      from: RECEIPT_FROM, to: [o.customer.email],
+      subject: en ? `Receipt — order #${o.number}, Ichiban Sushi` : `Kvitto — beställning #${o.number}, Ichiban Sushi`,
+      html: receiptHtml(o),
+    });
+    httpsJson('api.resend.com', '/emails', { Authorization: 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }, body)
+      .then(() => console.log(`RECEIPT emailed for #${o.number}`))
+      .catch((e) => console.error('receipt email failed:', e.message));
+  }
+}
+
+function sendSms(to, text) {
+  if (!ELKS_USER || !ELKS_PASS) return;
+  const msisdn = to.replace(/[^\d+]/g, '').replace(/^0/, '+46');
+  const body = new URLSearchParams({ from: 'Ichiban', to: msisdn, message: text }).toString();
+  httpsJson('api.46elks.com', '/a1/sms', {
+    Authorization: 'Basic ' + Buffer.from(ELKS_USER + ':' + ELKS_PASS).toString('base64'),
+    'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body),
+  }, body).then(() => console.log('SMS sent to ' + msisdn)).catch((e) => console.error('sms failed:', e.message));
 }
 
 function createReservation(body) {
@@ -418,8 +532,9 @@ const server = http.createServer(async (req, res) => {
       let event;
       try { event = JSON.parse(raw); } catch { return sendJson(res, 400, { error: 'bad json' }); }
       if (event.type === 'checkout.session.completed') {
-        const orderId = event.data && event.data.object && event.data.object.metadata && event.data.object.metadata.order_id;
-        if (orderId) markOrderPaid(orderId);
+        const obj = event.data && event.data.object;
+        const orderId = obj && obj.metadata && obj.metadata.order_id;
+        if (orderId) markOrderPaid(orderId, obj.payment_intent);
       }
       if (event.type === 'checkout.session.expired') {
         const orderId = event.data && event.data.object && event.data.object.metadata && event.data.object.metadata.order_id;
@@ -436,6 +551,8 @@ const server = http.createServer(async (req, res) => {
     if (mOrder && req.method === 'GET') {
       const o = orders.find(x => x.id === mOrder[1]);
       if (!o || !timingEqual(url.searchParams.get('token') || '', o.token)) return sendJson(res, 404, { error: 'not found' });
+      // customer returned from Stripe: confirm payment even if the webhook is late/missing
+      if (o.status === 'pending_payment') await reconcileOrder(o);
       return sendJson(res, 200, publicCustomerOrder(o));
     }
 
@@ -485,7 +602,35 @@ const server = http.createServer(async (req, res) => {
         o.updatedAt = new Date().toISOString();
         saveJson('orders.json', orders);
         broadcast('order-status', { id: o.id, status: o.status });
+        if (body.status === 'ready' && SMS_ON_READY) {
+          sendSms(o.customer.phone, o.lang === 'en'
+            ? `Ichiban Sushi: your order #${o.number} is ready for pickup!`
+            : `Ichiban Sushi: din beställning #${o.number} är klar att hämtas!`);
+        }
         return sendJson(res, 200, { ok: true });
+      }
+
+      // refund a paid online order (full refund via Stripe)
+      const mRefund = p.match(/^\/api\/admin\/orders\/([a-f0-9-]+)\/refund$/);
+      if (mRefund && req.method === 'POST') {
+        const o = orders.find(x => x.id === mRefund[1]);
+        if (!o) return sendJson(res, 404, { error: 'not found' });
+        if (!o.paid || !o.paymentIntent) return sendJson(res, 400, { error: 'Ordern är inte betald online — inget att återbetala.' });
+        if (o.refunded) return sendJson(res, 400, { error: 'Redan återbetald.' });
+        try {
+          const refund = await stripeRequest('POST', '/v1/refunds', { payment_intent: o.paymentIntent }, { 'Idempotency-Key': 'refund-' + o.id });
+          o.refunded = true;
+          o.refundId = refund.id;
+          o.status = 'cancelled';
+          o.updatedAt = new Date().toISOString();
+          saveJson('orders.json', orders);
+          broadcast('order-status', { id: o.id, status: o.status });
+          console.log(`REFUND #${o.number} — ${o.total} kr (${refund.id})`);
+          return sendJson(res, 200, { ok: true, refundId: refund.id });
+        } catch (e) {
+          console.error('refund failed:', e.message);
+          return sendJson(res, 502, { error: 'Stripe: ' + e.message });
+        }
       }
       if (p === '/api/admin/reservations' && req.method === 'GET') {
         const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 1);

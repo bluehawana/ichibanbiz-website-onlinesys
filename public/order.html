@@ -67,11 +67,13 @@
       <p class="muted" style="margin-top:1rem">${st[1]}</p>
       <hr class="hairline" style="margin:1.6rem 0">
       <p><strong>${L.pickup}</strong> ${esc(o.pickup.date)} ${L.at} ${esc(o.pickup.time)}</p>
-      <p style="margin-top:0.4rem"><strong>${L.total}</strong> ${o.total} kr — ${o.paid ? L.paid : L.paylater}</p>
+      <p style="margin-top:0.4rem"><strong>${L.total}</strong> ${o.total} kr — ${o.refunded ? (lang === 'en' ? 'refunded ↩' : 'återbetald ↩') : o.paid ? L.paid : L.paylater}</p>
       <div style="text-align:left;margin-top:1.4rem" class="muted">
         ${o.lines.map((l) => `<div style="display:flex;justify-content:space-between;padding:0.25rem 0"><span>${l.qty} × ${esc(l.name)}${l.option ? ' · ' + esc(l.option) : ''}</span><span>${l.lineTotal} kr</span></div>`).join('')}
+        <div style="display:flex;justify-content:space-between;padding:0.35rem 0;border-top:1px dashed var(--line);margin-top:0.4rem;font-size:0.9rem"><span>${lang === 'en' ? 'VAT (12%) included' : 'Varav moms (12 %)'}</span><span>${Math.round(o.total * 0.12 / 1.12)} kr</span></div>
       </div>
-      <p class="form-note" style="margin-top:1.6rem">Södra Vägen 91, Göteborg · <a href="tel:+4631831786" style="color:var(--aka)">031-83 17 86</a><br>${L.save}</p>`;
+      <button class="btn btn-ghost" onclick="window.print()" style="margin-top:1.4rem;font-size:0.9rem;padding:0.6rem 1.3rem">${lang === 'en' ? '🖨 Print receipt' : '🖨 Skriv ut kvitto'}</button>
+      <p class="form-note" style="margin-top:1.2rem">Södra Vägen 91, Göteborg · <a href="tel:+4631831786" style="color:var(--aka)">031-83 17 86</a><br>${L.save}</p>`;
   }
   function load() {
     fetch(`/api/orders/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`)

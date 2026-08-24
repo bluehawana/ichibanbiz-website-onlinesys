@@ -46,6 +46,11 @@
     'Summa': 'Total', 'Namn': 'Name', 'Ditt namn': 'Your name', 'Mobilnummer': 'Mobile number',
     'Avhämtningstid': 'Pickup time', 'Skicka beställning': 'Place order',
     'Betalning': 'Payment', 'Betala online (kort)': 'Pay online (card)', 'Betala vid avhämtning': 'Pay at pickup',
+    'E-post för digitalt kvitto': 'Email for digital receipt',
+    '(valfritt)': '(optional)',
+    'Meddelande till köket': 'Message to the kitchen',
+    'Meddelande': 'Message',
+    'namn@example.com': 'name@example.com',
     'Allergier, önskemål …': 'Allergies, requests …',
     // booking page
     'Fira, ät och umgås hos oss': 'Celebrate, eat and enjoy with us',

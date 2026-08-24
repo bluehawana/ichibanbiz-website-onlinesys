@@ -60,13 +60,15 @@
   const fmtTime = (iso) => new Date(iso).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
 
   function orderCard(o) {
-    const st = { new: 'NY', accepted: 'Accepterad', ready: 'Klar', done: 'Uthämtad', cancelled: 'Avbruten' }[o.status] || o.status;
-    const actions = {
+    const st = o.refunded ? 'Återbetald' : ({ new: 'NY', accepted: 'Accepterad', ready: 'Klar', done: 'Uthämtad', cancelled: 'Avbruten' }[o.status] || o.status);
+    // paid online orders get a refund button (tap twice to confirm)
+    const refundBtn = o.canRefund ? `<button class="b-cancel b-refund" data-refund="${esc(o.id)}">↩ Återbetala</button>` : '';
+    const actions = ({
       new: `<button class="b-accept" data-a="accepted">✓ Acceptera</button><button class="b-cancel" data-a="cancelled">Avvisa</button>`,
       accepted: `<button class="b-ready" data-a="ready">🍣 Maten är klar</button><button class="b-cancel" data-a="cancelled">Avbryt</button>`,
       ready: `<button class="b-done" data-a="done">✓ Uthämtad</button>`,
       done: '', cancelled: '',
-    }[o.status] || '';
+    }[o.status] || '') + refundBtn;
     return `<div class="card ${o.status === 'new' ? 'new' : ''}" data-id="${esc(o.id)}" data-kind="order">
       <div class="row">
         <span class="num">#${o.number}</span>
@@ -150,8 +152,25 @@
     es.addEventListener('reservation-status', () => loadAll().catch(() => {}));
   }
 
-  // status buttons
+  // status + refund buttons
   $('list').addEventListener('click', async (e) => {
+    const refundBtn = e.target.closest('button[data-refund]');
+    if (refundBtn) {
+      // two taps to refund — no blocking confirm() dialogs
+      if (!refundBtn.dataset.armed) {
+        refundBtn.dataset.armed = '1';
+        refundBtn.textContent = 'Tryck igen: återbetala hela beloppet';
+        refundBtn.style.color = '#fff'; refundBtn.style.background = 'var(--aka)';
+        setTimeout(() => { refundBtn.dataset.armed = ''; refundBtn.textContent = '↩ Återbetala'; refundBtn.style.color = ''; refundBtn.style.background = ''; }, 4000);
+        return;
+      }
+      refundBtn.disabled = true;
+      try {
+        await api(`/api/admin/orders/${refundBtn.dataset.refund}/refund`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        await loadAll();
+      } catch { refundBtn.disabled = false; }
+      return;
+    }
     const btn = e.target.closest('button[data-a]');
     if (!btn) return;
     const card = btn.closest('.card');
