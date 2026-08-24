@@ -18,6 +18,15 @@ const path = require('path');
 const crypto = require('crypto');
 
 const ROOT = path.join(__dirname, '..');
+
+// minimal .env loader (real environment variables win over the file)
+try {
+  for (const line of fs.readFileSync(path.join(ROOT, '.env'), 'utf8').split('\n')) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+  }
+} catch { /* no .env file — fine */ }
+
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const ADMIN_DIR = path.join(ROOT, 'admin');
 const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
