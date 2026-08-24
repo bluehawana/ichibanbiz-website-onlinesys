@@ -1,0 +1,30 @@
+[Unit]
+Description=Ichiban Sushi website + ordering system
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/ichiban
+ExecStart=/usr/bin/node /opt/ichiban/server/server.js
+Restart=always
+RestartSec=3
+
+# Override these with `systemctl edit ichiban`:
+Environment=PORT=3000
+Environment=BASE_URL=https://ichiban.biz
+# Environment=ADMIN_PIN=change-me
+# Environment=SECRET=long-random-string
+# Environment=STRIPE_SECRET_KEY=sk_live_...
+# Environment=STRIPE_WEBHOOK_SECRET=whsec_...
+
+# hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/ichiban/data
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

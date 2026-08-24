@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Din beställning — Ichiban Sushi</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;700;900&family=Instrument+Sans:wght@400;500;600;700&family=Shippori+Mincho:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<script defer src="/js/i18n.js"></script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23d8492f'/><text x='50' y='72' font-size='62' text-anchor='middle' fill='white' font-family='serif' font-weight='bold'>一</text></svg>">
+</head>
+<body>
+<header class="site-head">
+  <div class="bar">
+    <a class="brand" href="/">
+      <span class="seal">一番</span>
+      <span class="name">Ichiban Sushi<small>Göteborg · Södra Vägen 91</small></span>
+    </a>
+  </div>
+</header>
+
+<main>
+  <div class="confirm-card" id="card">
+    <p class="muted">Hämtar din beställning …</p>
+  </div>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  const q = new URLSearchParams(location.search);
+  const id = q.get('id'), token = q.get('token');
+  const card = document.getElementById('card');
+  const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const STATUS = {
+    sv: {
+      pending_payment: ['Väntar på betalning', 'Slutför betalningen för att skicka beställningen till köket.'],
+      new: ['Mottagen', 'Vi har tagit emot din beställning och sätter igång strax.'],
+      accepted: ['Bekräftad — vi lagar din mat', 'Köket har accepterat din beställning.'],
+      ready: ['Klar att hämtas!', 'Din mat är klar — välkommen in.'],
+      done: ['Uthämtad', 'Tack för din beställning — välkommen åter!'],
+      cancelled: ['Avbruten', 'Beställningen har avbrutits. Ring oss på 031-83 17 86 vid frågor.'],
+    },
+    en: {
+      pending_payment: ['Awaiting payment', 'Complete the payment to send your order to the kitchen.'],
+      new: ['Received', 'We have received your order and will start shortly.'],
+      accepted: ['Confirmed — we are preparing your food', 'The kitchen has accepted your order.'],
+      ready: ['Ready for pickup!', 'Your food is ready — welcome in.'],
+      done: ['Picked up', 'Thank you for your order — welcome back!'],
+      cancelled: ['Cancelled', 'The order was cancelled. Call us at 031-83 17 86 with any questions.'],
+    },
+  };
+  function render(o) {
+    const lang = (window.I18N && window.I18N.lang) === 'en' ? 'en' : 'sv';
+    const L = lang === 'en'
+      ? { nr: 'Order no.', pickup: 'Pickup:', at: 'at', total: 'Total:', paid: 'paid online ✓', paylater: 'pay in the restaurant (card/Swish)', save: 'Keep this page open — it updates when your food is ready.' }
+      : { nr: 'Beställning nr', pickup: 'Avhämtning:', at: 'kl', total: 'Summa:', paid: 'betald online ✓', paylater: 'betalas i restaurangen (kort/Swish)', save: 'Spara den här sidan — den uppdateras när maten är klar.' };
+    const st = STATUS[lang][o.status] || STATUS[lang].new;
+    card.innerHTML = `
+      <div class="big">${o.status === 'ready' ? '🍣' : o.status === 'cancelled' ? '✕' : '✔'}</div>
+      <p class="kicker">${L.nr}</p>
+      <h1 style="font-size:3rem">#${o.number}</h1>
+      <span class="status-pill ${esc(o.status)}">${st[0]}</span>
+      <p class="muted" style="margin-top:1rem">${st[1]}</p>
+      <hr class="hairline" style="margin:1.6rem 0">
+      <p><strong>${L.pickup}</strong> ${esc(o.pickup.date)} ${L.at} ${esc(o.pickup.time)}</p>
+      <p style="margin-top:0.4rem"><strong>${L.total}</strong> ${o.total} kr — ${o.paid ? L.paid : L.paylater}</p>
+      <div style="text-align:left;margin-top:1.4rem" class="muted">
+        ${o.lines.map((l) => `<div style="display:flex;justify-content:space-between;padding:0.25rem 0"><span>${l.qty} × ${esc(l.name)}${l.option ? ' · ' + esc(l.option) : ''}</span><span>${l.lineTotal} kr</span></div>`).join('')}
+      </div>
+      <p class="form-note" style="margin-top:1.6rem">Södra Vägen 91, Göteborg · <a href="tel:+4631831786" style="color:var(--aka)">031-83 17 86</a><br>${L.save}</p>`;
+  }
+  function load() {
+    fetch(`/api/orders/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`)
+      .then((r) => { if (!r.ok) throw 0; return r.json(); })
+      .then(render)
+      .catch(() => { card.innerHTML = '<p class="muted">Beställningen hittades inte. <a href="/bestall" style="color:var(--aka)">Gör en ny beställning</a></p>'; });
+  }
+  if (!id || !token) { card.innerHTML = '<p class="muted">Ogiltig länk. <a href="/bestall" style="color:var(--aka)">Till beställningen</a></p>'; return; }
+  load();
+  setInterval(load, 20000);
+})();
+</script>
+</body>
+</html>

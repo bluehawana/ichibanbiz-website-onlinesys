@@ -1,0 +1,12 @@
+# Automatic HTTPS for ichiban.biz — Caddy handles certificates by itself.
+ichiban.biz, www.ichiban.biz {
+	encode gzip zstd
+	reverse_proxy localhost:3000
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}

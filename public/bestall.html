@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beställ avhämtning — Ichiban Sushi Göteborg</title>
+<meta name="description" content="Beställ sushi, poké bowls och varmrätter för avhämtning hos Ichiban Sushi i Göteborg. Välj tid och betala smidigt i restaurangen.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;700;900&family=Instrument+Sans:wght@400;500;600;700&family=Shippori+Mincho:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23d8492f'/><text x='50' y='72' font-size='62' text-anchor='middle' fill='white' font-family='serif' font-weight='bold'>一</text></svg>">
+</head>
+<body>
+<a class="skip" href="#main">Hoppa till innehåll</a>
+
+<header class="site-head">
+  <div class="bar">
+    <a class="brand" href="/">
+      <span class="seal">一番</span>
+      <span class="name">Ichiban Sushi<small>Göteborg · Södra Vägen 91</small></span>
+    </a>
+    <button class="nav-toggle" aria-label="Meny" aria-expanded="false">☰</button>
+    <nav class="nav" aria-label="Huvudmeny">
+      <a href="/">Hem</a>
+      <a href="/meny">Meny</a>
+      <a href="/boka">Boka bord</a>
+      <a href="/om">Om oss</a>
+      <a class="cta" href="/bestall" aria-current="page">Beställ avhämtning</a>
+    </nav>
+  </div>
+</header>
+
+<nav class="cat-nav" aria-label="Kategorier"><div class="in" id="cat-nav"></div></nav>
+
+<main id="main">
+  <section class="block tight">
+    <div class="wrap">
+      <p class="kicker">Avhämtning</p>
+      <h1 style="font-size:clamp(2rem,4.5vw,3rem)">Beställ online</h1>
+      <p class="lead" style="margin-top:0.8rem" data-i18n="order.lead">Lägg till rätter, välj avhämtningstid och betala i restaurangen med kort eller Swish när du hämtar. Tidigast avhämtning 30 minuter efter beställning.</p>
+
+      <div class="order-layout" style="margin-top:2.5rem">
+        <div id="order-menu"><p class="muted">Laddar menyn …</p></div>
+
+        <!-- cart / checkout -->
+        <aside class="cart" id="cart" aria-label="Varukorg">
+          <h3>Varukorg <span class="muted" id="cart-count" style="font-size:0.9rem;font-weight:500"></span></h3>
+          <div class="cart-lines" id="cart-lines"></div>
+          <p class="empty" id="cart-empty">Din varukorg är tom — lägg till något gott från menyn.</p>
+          <div class="cart-total" id="cart-total-row" hidden><span>Summa</span><span id="cart-total">0 kr</span></div>
+
+          <form id="checkout" style="margin-top:1.4rem" hidden>
+            <div class="form-error" id="form-error"></div>
+            <div class="field">
+              <label for="f-name">Namn</label>
+              <input id="f-name" name="name" autocomplete="name" required maxlength="80" placeholder="Ditt namn">
+            </div>
+            <div class="field">
+              <label for="f-phone">Mobilnummer</label>
+              <input id="f-phone" name="phone" type="tel" autocomplete="tel" required maxlength="20" placeholder="07x-xxx xx xx">
+            </div>
+            <div class="field">
+              <label>Avhämtningstid</label>
+              <div class="slot-days" id="slot-days"></div>
+              <div class="slot-grid" id="slot-grid"></div>
+            </div>
+            <div class="field">
+              <label for="f-note">Meddelande till köket <span class="muted">(valfritt)</span></label>
+              <textarea id="f-note" name="note" rows="2" maxlength="400" placeholder="Allergier, önskemål …"></textarea>
+            </div>
+            <div class="field" id="pay-field" hidden>
+              <label>Betalning</label>
+              <div style="display:grid;gap:0.5rem">
+                <label style="display:flex;gap:0.6rem;align-items:center;font-weight:500;color:var(--ink)">
+                  <input type="radio" name="paymethod" value="online" checked> <span>Betala online (kort)</span>
+                </label>
+                <label style="display:flex;gap:0.6rem;align-items:center;font-weight:500;color:var(--ink)">
+                  <input type="radio" name="paymethod" value="pickup"> <span>Betala vid avhämtning</span>
+                </label>
+              </div>
+            </div>
+            <button class="btn btn-primary" type="submit" id="submit-btn" style="width:100%">Skicka beställning</button>
+            <p class="form-note" style="margin-top:0.8rem" data-i18n="order.paynote">Ingen betalning online — du betalar när du hämtar. Vi bekräftar inte via sms; visa beställningsnumret i kassan.</p>
+          </form>
+        </aside>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- mobile cart bar -->
+<div class="cartbar" id="cartbar" role="button" tabindex="0">
+  <span id="cartbar-label">Varukorg</span>
+  <span id="cartbar-total"></span>
+</div>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <div class="fine"><span>© <span id="year">2026</span> Ichiban Sushi · Södra Vägen 91, Göteborg · <a href="tel:+4631831786">031-83 17 86</a></span><span><a href="/integritet">Integritetspolicy</a></span></div>
+  </div>
+</footer>
+
+<script src="/js/i18n.js"></script>
+<script src="/js/site.js"></script>
+<script src="/js/order.js"></script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ichiban Kök — beställningar</title>
+<meta name="robots" content="noindex">
+<link rel="manifest" href="/admin/manifest.webmanifest">
+<meta name="theme-color" content="#171310">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23cf3f2b'/><text x='50' y='72' font-size='62' text-anchor='middle' fill='white' font-family='serif' font-weight='bold'>番</text></svg>">
+<style>
+  :root {
+    --bg:#171310; --raise:#1e1914; --card:#262019; --ink:#f2ead9; --dim:#b9ab93; --faint:#8a7b61;
+    --aka:#cf3f2b; --gold:#c9a24b; --ok:#5da96c; --line:rgba(242,234,217,.13);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--ink); font-family:"Instrument Sans",system-ui,sans-serif; font-size:16px; line-height:1.5; padding-bottom:4rem; }
+  header { position:sticky; top:0; z-index:10; display:flex; align-items:center; gap:0.8rem; padding:0.9rem 1.1rem; background:var(--raise); border-bottom:1px solid var(--line); }
+  header .seal { width:36px;height:36px;border-radius:6px;background:var(--aka);color:#fff;display:grid;place-items:center;font-weight:700;transform:rotate(-4deg); }
+  header h1 { font-size:1.05rem; margin-right:auto; }
+  header .dot { width:10px;height:10px;border-radius:99px;background:#777; }
+  header .dot.on { background:var(--ok); box-shadow:0 0 8px var(--ok); }
+  .tabs { display:flex; gap:0.4rem; padding:0.8rem 1.1rem 0; }
+  .tabs button { flex:1; padding:0.65rem; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--dim); font:inherit; font-weight:600; }
+  .tabs button.active { background:var(--ink); color:var(--bg); border-color:var(--ink); }
+  .tabs button .badge { background:var(--aka); color:#fff; border-radius:99px; padding:0 0.5em; margin-left:0.35em; font-size:0.85em; }
+  main { padding:1.1rem; display:grid; gap:0.9rem; max-width:760px; margin:0 auto; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:1.1rem; }
+  .card.new { border-color:var(--aka); box-shadow:0 0 0 1px var(--aka), 0 8px 30px -12px rgba(207,63,43,.5); animation:pulse 1.2s ease-in-out infinite alternate; }
+  @keyframes pulse { from { box-shadow:0 0 0 1px var(--aka); } to { box-shadow:0 0 0 4px var(--aka); } }
+  .row { display:flex; justify-content:space-between; align-items:baseline; gap:0.8rem; flex-wrap:wrap; }
+  .num { font-size:1.5rem; font-weight:700; }
+  .pickup { font-size:1.15rem; font-weight:700; color:var(--gold); }
+  .meta { color:var(--dim); font-size:0.92rem; margin-top:0.15rem; }
+  .meta a { color:var(--ink); }
+  .lines { margin:0.8rem 0; border-top:1px dashed var(--line); padding-top:0.8rem; display:grid; gap:0.3rem; }
+  .lines div { display:flex; justify-content:space-between; gap:1rem; }
+  .lines .q { color:var(--aka); font-weight:700; min-width:2.6em; }
+  .note { background:rgba(201,162,75,.12); border:1px solid rgba(201,162,75,.4); border-radius:9px; padding:0.5rem 0.8rem; margin-top:0.5rem; font-size:0.95rem; }
+  .total { font-weight:700; border-top:1px solid var(--line); padding-top:0.6rem; margin-top:0.4rem; display:flex; justify-content:space-between; }
+  .paid { color:var(--ok); font-weight:700; font-size:0.9rem; }
+  .unpaid { color:var(--gold); font-weight:600; font-size:0.9rem; }
+  .actions { display:flex; gap:0.6rem; margin-top:0.9rem; flex-wrap:wrap; }
+  .actions button { flex:1; min-width:120px; padding:0.85rem; border-radius:11px; border:none; font:inherit; font-weight:700; font-size:1.02rem; }
+  .b-accept { background:var(--aka); color:#fff; }
+  .b-ready { background:var(--gold); color:#241d0c; }
+  .b-done { background:var(--ok); color:#fff; }
+  .b-cancel { background:none; border:1px solid var(--line) !important; color:var(--dim); flex:0 1 auto; }
+  .st { font-size:0.78rem; text-transform:uppercase; letter-spacing:0.12em; font-weight:700; padding:0.25rem 0.7rem; border-radius:99px; border:1px solid var(--line); color:var(--dim); }
+  .st.new { color:#fff; background:var(--aka); border-color:var(--aka); }
+  .st.accepted { color:var(--gold); border-color:var(--gold); }
+  .st.ready { color:var(--ok); border-color:var(--ok); }
+  .empty { text-align:center; color:var(--faint); padding:3rem 1rem; }
+  /* login */
+  #login { max-width:340px; margin:18vh auto; text-align:center; padding:0 1.2rem; }
+  #login .seal { width:64px;height:64px;border-radius:10px;background:var(--aka);color:#fff;display:grid;place-items:center;font-weight:700;font-size:1.6rem;transform:rotate(-4deg);margin:0 auto 1.2rem; }
+  #login input { width:100%; padding:1rem; font-size:1.6rem; text-align:center; letter-spacing:0.5em; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:12px; margin:1rem 0; }
+  #login button { width:100%; padding:1rem; border-radius:12px; border:none; background:var(--aka); color:#fff; font:inherit; font-weight:700; font-size:1.05rem; }
+  #login .err { color:var(--aka); min-height:1.4em; margin-top:0.6rem; }
+  /* sound gate */
+  #soundgate { position:fixed; inset:0; background:rgba(23,19,16,.92); z-index:50; display:none; place-items:center; text-align:center; padding:1.5rem; }
+  #soundgate.show { display:grid; }
+  #soundgate button { padding:1.1rem 2.2rem; font-size:1.15rem; border-radius:14px; border:none; background:var(--aka); color:#fff; font-weight:700; }
+  #soundgate p { color:var(--dim); margin-top:1rem; max-width:34ch; }
+</style>
+</head>
+<body>
+
+<div id="login" hidden>
+  <div class="seal">番</div>
+  <h1>Ichiban Kök</h1>
+  <p style="color:var(--dim)">Ange PIN-kod för att se beställningar</p>
+  <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12" aria-label="PIN-kod">
+  <button id="login-btn">Logga in</button>
+  <p class="err" id="login-err"></p>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <div class="seal">番</div>
+    <h1>Ichiban Kök</h1>
+    <span id="clock" style="color:var(--dim);font-variant-numeric:tabular-nums"></span>
+    <div class="dot" id="conn" title="Anslutning"></div>
+  </header>
+  <div class="tabs">
+    <button id="tab-orders" class="active">Beställningar<span class="badge" id="badge-orders" hidden></span></button>
+    <button id="tab-bookings">Bokningar<span class="badge" id="badge-bookings" hidden></span></button>
+  </div>
+  <main id="list"></main>
+</div>
+
+<div id="soundgate">
+  <div>
+    <button id="soundgate-btn">🔔 Aktivera larmljud</button>
+    <p>Tryck en gång så att surfplattan/telefonen får spela larm när nya beställningar kommer in. Lägg gärna till sidan på hemskärmen.</p>
+  </div>
+</div>
+
+<script src="/admin/app.js"></script>
+</body>
+</html>
