@@ -118,3 +118,40 @@ Bilder ligger i `public/assets/img/menu/`.
 Webbplatsen är tvåspråkig: svenska (standard) och engelska. Växlas med
 EN/SV-knappen i sidhuvudet; valet sparas i besökarens webbläsare och
 webbläsare med annat språk än svenska får engelska automatiskt.
+
+## Versionshantering & återställning (rollback)
+
+Allt som körs i produktion kommer från git — servern kör alltid exakt
+`origin/main`, ingenting ändras för hand på VPS:en. Stabila lägen taggas
+(`v1.0.0`, `v1.1.0` …) och publiceras som GitHub Releases med artefakter.
+
+**Ångra senaste ändringen** (det normala sättet — historiken bevaras):
+
+```bash
+git revert HEAD          # eller: git revert <sha>
+git push                 # CI kör testerna och rullar ut automatiskt
+```
+
+**Rulla tillbaka till en tagg:**
+
+```bash
+git revert --no-commit v1.0.0..HEAD && git commit -m "Rollback till v1.0.0"
+git push
+```
+
+**Akut (utan att vänta på CI)** — peka servern direkt på en känd bra commit:
+
+```bash
+ssh alphavps
+sudo git -C /opt/ichiban reset --hard v1.0.0   # eller en sha
+sudo systemctl restart ichiban
+```
+
+**Data** (beställningar/bokningar ligger i `data/`, inte i git):
+säkerhetskopieras varje natt kl 03:17 till `/root/backups/ichiban/`
+på VPS:en (30 dagar sparas). Återställ med:
+
+```bash
+sudo tar xzf /root/backups/ichiban/data-ÅÅÅÅ-MM-DD.tgz -C /opt/ichiban
+sudo systemctl restart ichiban
+```
