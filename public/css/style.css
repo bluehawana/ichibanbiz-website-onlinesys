@@ -359,6 +359,24 @@ section.block.tight { padding: 3.5rem 0; }
 .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 0.45rem; max-height: 190px; overflow-y: auto; }
 .slot-grid button { padding: 0.5rem 0.2rem; border-radius: 9px; border: 1px solid var(--line); background: var(--bg-card); color: var(--ink); font-variant-numeric: tabular-nums; }
 .slot-grid button.active { background: var(--aka); border-color: var(--aka); color: #fff; font-weight: 600; }
+/* fully booked / passed times: crossed out, like the old Wix picker */
+.slot-grid button.unavail {
+  color: var(--ink-faint); cursor: not-allowed; opacity: 0.55;
+  background:
+    linear-gradient(to top right, transparent calc(50% - 1px), var(--ink-faint) calc(50% - 1px), var(--ink-faint) calc(50% + 1px), transparent calc(50% + 1px)),
+    var(--bg-card);
+}
+
+/* ---------------- google review ---------------- */
+.review-cta {
+  display: inline-flex; align-items: center; gap: 0.7rem;
+  background: #fff; color: #1a1a1a; font-weight: 600;
+  padding: 0.85rem 1.6rem; border-radius: 999px;
+  transition: transform .12s;
+}
+.review-cta:hover { transform: translateY(-2px); color: #1a1a1a; }
+.review-cta .g { font-weight: 800; font-size: 1.15rem; background: linear-gradient(90deg,#4285F4 25%,#EA4335 25% 50%,#FBBC05 50% 75%,#34A853 75%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.review-stars { color: var(--gold); font-size: 1.6rem; letter-spacing: 0.35rem; display: block; margin-bottom: 1rem; }
 
 /* confirmation */
 .confirm-card {

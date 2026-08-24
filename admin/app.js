@@ -22,21 +22,23 @@
     if (audioCtx.state === 'suspended') audioCtx.resume();
     return audioCtx.state === 'running' || audioCtx.state === 'suspended';
   }
+  // orders ring a bright two-tone chime; table bookings a lower three-note "beep beep beep"
   function beepBurst() {
     if (!audioCtx || audioCtx.state !== 'running') return;
     const t0 = audioCtx.currentTime;
-    // three insistent two-tone chimes
+    const newOrders = ordersList.some((o) => o.status === 'new');
+    const tones = newOrders ? [880, 1320] : [523, 659, 784];
     for (let i = 0; i < 3; i++) {
       const t = t0 + i * 0.45;
-      [880, 1320].forEach((f, j) => {
+      tones.forEach((f, j) => {
         const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         o.type = 'square'; o.frequency.value = f;
-        g.gain.setValueAtTime(0.0001, t + j * 0.18);
-        g.gain.exponentialRampToValueAtTime(0.28, t + j * 0.18 + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + j * 0.18 + 0.16);
+        g.gain.setValueAtTime(0.0001, t + j * 0.14);
+        g.gain.exponentialRampToValueAtTime(0.28, t + j * 0.14 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + j * 0.14 + 0.13);
         o.connect(g).connect(audioCtx.destination);
-        o.start(t + j * 0.18); o.stop(t + j * 0.18 + 0.2);
+        o.start(t + j * 0.14); o.stop(t + j * 0.14 + 0.16);
       });
     }
     if (navigator.vibrate) navigator.vibrate([300, 120, 300]);
@@ -48,7 +50,11 @@
     if (hasUnacked()) {
       if (!alarmTimer) { beepBurst(); alarmTimer = setInterval(beepBurst, 2500); }
     } else if (alarmTimer) { clearInterval(alarmTimer); alarmTimer = null; }
-    document.title = hasUnacked() ? '🔔 NY BESTÄLLNING — Demo Kök' : 'Demo Kök — beställningar';
+    const newOrders = ordersList.some((o) => o.status === 'new');
+    const newBookings = bookings.some((b) => b.status === 'new');
+    document.title = newOrders ? '🔔 NY BESTÄLLNING — Demo Kök'
+      : newBookings ? '🔔 NY BOKNING — Demo Kök'
+      : 'Demo Kök — beställningar';
   }
   function notify(title, body) {
     if (Notification.permission === 'granted') {
