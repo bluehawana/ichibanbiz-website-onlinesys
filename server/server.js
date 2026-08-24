@@ -56,6 +56,7 @@ const MIN_LEAD_MIN = 30; // minimum preparation time
 const MAX_CONCURRENT_GUESTS = parseInt(process.env.MAX_CONCURRENT_GUESTS || '40', 10);
 const BOOKING_DURATION_MIN = parseInt(process.env.BOOKING_DURATION_MIN || '90', 10);
 const GOOGLE_PLACE_ID = process.env.GOOGLE_PLACE_ID || '';
+const REVIEW_URL = process.env.REVIEW_URL || ''; // e.g. the official g.page/r/... short link
 
 // ---------------------------------------------------------------- tiny JSON store
 fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -569,7 +570,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, {
         onlinePayment: ONLINE_PAYMENT,
         currency: 'SEK',
-        reviewUrl: GOOGLE_PLACE_ID ? `https://search.google.com/local/writereview?placeid=${GOOGLE_PLACE_ID}` : null,
+        reviewUrl: REVIEW_URL || (GOOGLE_PLACE_ID ? `https://search.google.com/local/writereview?placeid=` : null),
       });
     }
 
