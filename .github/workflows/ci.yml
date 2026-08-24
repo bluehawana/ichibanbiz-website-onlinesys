@@ -1,0 +1,74 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, template]
+  pull_request:
+
+jobs:
+  test:
+    name: Checks & smoke tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Syntax check (server + frontend + admin JS)
+        run: |
+          node --check server/server.js
+          for f in public/js/*.js admin/*.js test/*.js; do
+            node -e "new Function(require('fs').readFileSync('$f','utf8'))" && echo "OK $f"
+          done
+
+      - name: Validate menu.json
+        run: |
+          node -e "
+            const m = require('./public/data/menu.json');
+            if (!m.categories.length) throw new Error('empty menu');
+            const ids = new Set();
+            for (const c of m.categories) for (const it of c.items) {
+              if (!it.id || !it.name || !Number.isFinite(it.price)) throw new Error('bad item: ' + JSON.stringify(it));
+              if (ids.has(it.id)) throw new Error('duplicate id: ' + it.id);
+              ids.add(it.id);
+            }
+            console.log('menu.json OK —', ids.size, 'items');
+          "
+
+      - name: Smoke tests (boot real server, exercise all APIs)
+        run: node --test test/
+
+      - name: Package build artifact
+        run: |
+          mkdir -p dist
+          tar czf "dist/ichiban-site-$(git rev-parse --short HEAD).tar.gz" \
+            --exclude='.git' --exclude='dist' --exclude='data' --exclude='.env' --exclude='print' .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ichiban-site
+          path: dist/*.tar.gz
+          retention-days: 30
+
+  deploy:
+    name: Deploy to AlphaVPS
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy over SSH and health-check
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if [ -z "$VPS_SSH_KEY" ]; then
+            echo "::notice::VPS_SSH_KEY secret not set — skipping deploy."
+            exit 0
+          fi
+          mkdir -p ~/.ssh
+          echo "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H 94.72.141.71 >> ~/.ssh/known_hosts 2>/dev/null
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new deploy@94.72.141.71 deploy-ichiban

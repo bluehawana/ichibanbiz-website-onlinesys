@@ -133,6 +133,7 @@ async function readJsonBody(req) {
 }
 
 // very small in-memory rate limiter: max N requests per IP per minute for POSTs
+const RATE_MAX = parseInt(process.env.RATE_LIMIT_MAX || '10', 10);
 const rl = new Map();
 function rateLimited(req, max = 20) {
   const ip = req.socket.remoteAddress || '?';
@@ -585,7 +586,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/pickup-slots' && req.method === 'GET') return sendJson(res, 200, { days: pickupSlots(), minLeadMin: MIN_LEAD_MIN });
 
     if (p === '/api/orders' && req.method === 'POST') {
-      if (rateLimited(req, 10)) return sendJson(res, 429, { error: 'För många försök — vänta en stund.' });
+      if (rateLimited(req, RATE_MAX)) return sendJson(res, 429, { error: 'För många försök — vänta en stund.' });
       const body = await readJsonBody(req);
       try {
         const order = createOrder(body);
@@ -643,7 +644,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (p === '/api/reservations' && req.method === 'POST') {
-      if (rateLimited(req, 10)) return sendJson(res, 429, { error: 'För många försök — vänta en stund.' });
+      if (rateLimited(req, RATE_MAX)) return sendJson(res, 429, { error: 'För många försök — vänta en stund.' });
       const body = await readJsonBody(req);
       try {
         const r = createReservation(body);
@@ -661,7 +662,7 @@ const server = http.createServer(async (req, res) => {
 
     // ---------- admin auth
     if (p === '/api/admin/login' && req.method === 'POST') {
-      if (rateLimited(req, 10)) return sendJson(res, 429, { error: 'För många försök.' });
+      if (rateLimited(req, RATE_MAX)) return sendJson(res, 429, { error: 'För många försök.' });
       const body = await readJsonBody(req);
       if (timingEqual(String(body.pin || ''), ADMIN_PIN)) {
         res.setHeader('Set-Cookie', `adm=${adminToken()}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${180 * 24 * 3600}`);
