@@ -133,6 +133,7 @@ async function readJsonBody(req) {
 }
 
 // very small in-memory rate limiter: max N requests per IP per minute for POSTs
+const RATE_MAX = parseInt(process.env.RATE_LIMIT_MAX || '10', 10);
 const rl = new Map();
 function rateLimited(req, max = 20) {
   const ip = req.socket.remoteAddress || '?';
@@ -264,6 +265,7 @@ setInterval(() => {
       o.status = 'cancelled';
       o.updatedAt = new Date().toISOString();
       saveJson('orders.json', orders);
+      cancelLinkedReservation(o);
     } else if (ageMin > 2) {
       reconcileOrder(o);
     }
@@ -297,11 +299,20 @@ function createOrder(body) {
   const pickupDate = sanitizeStr(body.pickupDate, 10);
   const pickupTime = sanitizeStr(body.pickupTime, 5);
   const items = Array.isArray(body.items) ? body.items.slice(0, 60) : [];
+  // dine-in order-ahead: the guest orders + pays before arriving; a table is reserved
+  const dineIn = body.serviceType === 'dinein';
+  const guests = dineIn ? Math.max(1, Math.min(20, parseInt(body.guests, 10) || 0)) : 0;
 
   if (name.length < 2) throw new Error('Ange ditt namn.');
   if (phone.replace(/\D/g, '').length < 7) throw new Error('Ange ett giltigt telefonnummer.');
   if (!items.length) throw new Error('Varukorgen är tom.');
-  if (!validPickup(pickupDate, pickupTime)) throw new Error('Ogiltig avhämtningstid — välj en ny tid.');
+  if (!validPickup(pickupDate, pickupTime)) throw new Error(dineIn ? 'Ogiltig ankomsttid — välj en ny tid.' : 'Ogiltig avhämtningstid — välj en ny tid.');
+  if (dineIn) {
+    if (!guests) throw new Error('Ange antal gäster.');
+    const slots = bookingSlots(pickupDate, guests);
+    const slot = slots && slots.find((s) => s.time === pickupTime);
+    if (!slot || !slot.available) throw new Error('Tiden är tyvärr fullbokad — välj en annan ankomsttid.');
+  }
 
   const lines = [];
   let total = 0;
@@ -326,6 +337,8 @@ function createOrder(body) {
     status: wantsOnline ? 'pending_payment' : 'new',
     paid: false,
     paymentMethod: wantsOnline ? 'online' : 'pickup',
+    serviceType: dineIn ? 'dinein' : 'pickup',
+    guests,
     lang: body.lang === 'en' ? 'en' : 'sv',
     customer: { name, phone, email },
     note,
@@ -335,13 +348,44 @@ function createOrder(body) {
   };
   orders.push(order);
   saveJson('orders.json', orders);
+  if (dineIn) {
+    // reserve the table immediately (counts toward capacity; no separate alarm —
+    // the linked order is the thing the kitchen accepts)
+    const r = {
+      id: crypto.randomUUID(),
+      token: crypto.randomBytes(12).toString('hex'),
+      createdAt: order.createdAt,
+      status: 'confirmed',
+      linkedOrderId: order.id,
+      lang: order.lang,
+      name, phone, email, guests,
+      date: pickupDate, time: pickupTime,
+      note: `🍽 Förbeställd mat — order #${order.number}`,
+    };
+    reservations.push(r);
+    saveJson('reservations.json', reservations);
+    order.reservationId = r.id;
+    saveJson('orders.json', orders);
+  }
   if (!wantsOnline) {
-    // pay-at-pickup: the kitchen hears about it immediately
+    // pay at the restaurant: the kitchen hears about it immediately
     broadcast('order', publicAdminOrder(order));
+    if (dineIn) broadcast('reservation-status', { id: order.reservationId, status: 'confirmed' });
     sendReceipt(order); // confirmation with receipt link (email/sms if configured)
   }
-  console.log(`ORDER #${order.number} (${order.paymentMethod}) ${name} ${phone} — ${total} kr @ ${pickupDate} ${pickupTime}`);
+  console.log(`ORDER #${order.number} (${order.serviceType}/${order.paymentMethod}) ${name} ${phone} — ${total} kr @ ${pickupDate} ${pickupTime}${dineIn ? ` · ${guests} gäster` : ''}`);
   return order;
+}
+
+// a cancelled dine-in order releases its table
+function cancelLinkedReservation(order) {
+  if (!order.reservationId) return;
+  const r = reservations.find((x) => x.id === order.reservationId);
+  if (r && r.status !== 'cancelled') {
+    r.status = 'cancelled';
+    saveJson('reservations.json', reservations);
+    broadcast('reservation-status', { id: r.id, status: 'cancelled' });
+  }
 }
 
 function markOrderPaid(orderId, paymentIntent) {
@@ -358,10 +402,10 @@ function markOrderPaid(orderId, paymentIntent) {
 }
 
 function publicAdminOrder(o) {
-  return { id: o.id, number: o.number, createdAt: o.createdAt, status: o.status, paid: o.paid, refunded: !!o.refunded, canRefund: !!(o.paid && o.paymentIntent && !o.refunded), paymentMethod: o.paymentMethod, customer: o.customer, note: o.note, pickup: o.pickup, lines: o.lines, total: o.total };
+  return { id: o.id, number: o.number, createdAt: o.createdAt, status: o.status, paid: o.paid, refunded: !!o.refunded, canRefund: !!(o.paid && o.paymentIntent && !o.refunded), paymentMethod: o.paymentMethod, serviceType: o.serviceType || 'pickup', guests: o.guests || 0, customer: o.customer, note: o.note, pickup: o.pickup, lines: o.lines, total: o.total };
 }
 function publicCustomerOrder(o) {
-  return { number: o.number, status: o.status, paid: o.paid, refunded: !!o.refunded, paymentMethod: o.paymentMethod, pickup: o.pickup, lines: o.lines, total: o.total, createdAt: o.createdAt };
+  return { number: o.number, status: o.status, paid: o.paid, refunded: !!o.refunded, paymentMethod: o.paymentMethod, serviceType: o.serviceType || 'pickup', guests: o.guests || 0, pickup: o.pickup, lines: o.lines, total: o.total, createdAt: o.createdAt };
 }
 
 // ---------------------------------------------------------------- receipts (email/SMS — both optional)
@@ -399,7 +443,10 @@ function receiptHtml(o) {
     </div>
     <div style="padding:20px 6px">
       <p style="font-size:16px">${en ? 'Thank you for your order' : 'Tack för din beställning'}, ${esc(o.customer.name)}!</p>
-      <p><b>${en ? 'Order' : 'Beställning'} #${o.number}</b> — ${en ? 'pickup' : 'avhämtning'} ${esc(o.pickup.date)} ${en ? 'at' : 'kl'} ${esc(o.pickup.time)}</p>
+      <p><b>${en ? 'Order' : 'Beställning'} #${o.number}</b> — ${o.serviceType === 'dinein'
+        ? (en ? `table for ${o.guests}, arrival` : `bord för ${o.guests}, ankomst`)
+        : (en ? 'pickup' : 'avhämtning')} ${esc(o.pickup.date)} ${en ? 'at' : 'kl'} ${esc(o.pickup.time)}</p>
+      ${o.serviceType === 'dinein' ? `<p style="font-size:13px;color:#666">${en ? 'Your table is reserved — the food is served shortly after you arrive.' : 'Ert bord är reserverat — maten serveras strax efter att ni kommit.'}</p>` : ''}
       <table width="100%" style="border-top:1px solid #ddd;border-bottom:1px solid #ddd;margin:12px 0;font-size:14px">${rows}</table>
       <table width="100%" style="font-size:14px">
         <tr><td>${en ? 'VAT (12%) included' : 'Varav moms (12 %)'}</td><td align="right">${vat} kr</td></tr>
@@ -585,7 +632,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/pickup-slots' && req.method === 'GET') return sendJson(res, 200, { days: pickupSlots(), minLeadMin: MIN_LEAD_MIN });
 
     if (p === '/api/orders' && req.method === 'POST') {
-      if (rateLimited(req, 10)) return sendJson(res, 429, { error: 'För många försök — vänta en stund.' });
+      if (rateLimited(req, RATE_MAX)) return sendJson(res, 429, { error: 'För många försök — vänta en stund.' });
       const body = await readJsonBody(req);
       try {
         const order = createOrder(body);
@@ -628,6 +675,7 @@ const server = http.createServer(async (req, res) => {
         if (o && o.status === 'pending_payment') {
           o.status = 'cancelled';
           saveJson('orders.json', orders);
+          cancelLinkedReservation(o);
         }
       }
       return sendJson(res, 200, { received: true });
@@ -643,7 +691,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (p === '/api/reservations' && req.method === 'POST') {
-      if (rateLimited(req, 10)) return sendJson(res, 429, { error: 'För många försök — vänta en stund.' });
+      if (rateLimited(req, RATE_MAX)) return sendJson(res, 429, { error: 'För många försök — vänta en stund.' });
       const body = await readJsonBody(req);
       try {
         const r = createReservation(body);
@@ -661,7 +709,7 @@ const server = http.createServer(async (req, res) => {
 
     // ---------- admin auth
     if (p === '/api/admin/login' && req.method === 'POST') {
-      if (rateLimited(req, 10)) return sendJson(res, 429, { error: 'För många försök.' });
+      if (rateLimited(req, RATE_MAX)) return sendJson(res, 429, { error: 'För många försök.' });
       const body = await readJsonBody(req);
       if (timingEqual(String(body.pin || ''), ADMIN_PIN)) {
         res.setHeader('Set-Cookie', `adm=${adminToken()}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${180 * 24 * 3600}`);
@@ -696,6 +744,7 @@ const server = http.createServer(async (req, res) => {
         o.updatedAt = new Date().toISOString();
         saveJson('orders.json', orders);
         broadcast('order-status', { id: o.id, status: o.status });
+        if (o.status === 'cancelled') cancelLinkedReservation(o);
         if (body.status === 'ready' && SMS_ON_READY) {
           sendSms(o.customer.phone, o.lang === 'en'
             ? `Restaurang Demo: your order #${o.number} is ready for pickup!`
@@ -719,6 +768,7 @@ const server = http.createServer(async (req, res) => {
           o.updatedAt = new Date().toISOString();
           saveJson('orders.json', orders);
           broadcast('order-status', { id: o.id, status: o.status });
+          cancelLinkedReservation(o);
           console.log(`REFUND #${o.number} — ${o.total} kr (${refund.id})`);
           return sendJson(res, 200, { ok: true, refundId: refund.id });
         } catch (e) {

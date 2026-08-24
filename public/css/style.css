@@ -352,6 +352,16 @@ section.block.tight { padding: 3.5rem 0; }
 .form-error.show { display: block; }
 .form-note { color: var(--ink-faint); font-size: 0.85rem; }
 
+/* service type: takeaway vs dine-in order-ahead */
+.svc-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.svc-toggle button {
+  padding: 0.8rem 0.5rem; border-radius: 11px; border: 1px solid var(--line);
+  background: var(--bg-card); color: var(--ink-dim); font-weight: 600; font-size: 0.98rem;
+}
+.svc-toggle button.active {
+  background: var(--aka); border-color: var(--aka); color: #fff;
+}
+
 /* slot picker */
 .slot-days { display: flex; gap: 0.5rem; margin-bottom: 0.8rem; }
 .slot-days button { padding: 0.45rem 1rem; border-radius: 999px; border: 1px solid var(--line); background: var(--bg-card); color: var(--ink-dim); }

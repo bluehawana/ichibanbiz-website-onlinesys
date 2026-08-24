@@ -53,6 +53,21 @@
           <form id="checkout" style="margin-top:1.4rem" hidden>
             <div class="form-error" id="form-error"></div>
             <div class="field">
+              <label>Hur vill du äta?</label>
+              <div class="svc-toggle" id="svc-toggle">
+                <button type="button" class="active" data-svc="pickup">📦 <span>Ta med</span></button>
+                <button type="button" data-svc="dinein">🍽 <span>Ät här</span></button>
+              </div>
+              <p class="form-note" id="dinein-note" hidden>Förbeställ till bordet: vi reserverar ett bord och börjar laga maten innan ni kommer — den serveras några minuter efter att ni satt er.</p>
+            </div>
+            <div class="field" id="guests-field" hidden>
+              <label for="f-guests">Antal gäster</label>
+              <select id="f-guests">
+                <option>1</option><option selected>2</option><option>3</option><option>4</option>
+                <option>5</option><option>6</option><option>7</option><option>8</option>
+              </select>
+            </div>
+            <div class="field">
               <label for="f-name">Namn</label>
               <input id="f-name" name="name" autocomplete="name" required maxlength="80" placeholder="Ditt namn">
             </div>
@@ -65,7 +80,7 @@
               <input id="f-email" name="email" type="email" autocomplete="email" maxlength="120" placeholder="namn@example.com">
             </div>
             <div class="field">
-              <label>Avhämtningstid</label>
+              <label id="slot-label">Avhämtningstid</label>
               <div class="slot-days" id="slot-days"></div>
               <div class="slot-grid" id="slot-grid"></div>
             </div>
