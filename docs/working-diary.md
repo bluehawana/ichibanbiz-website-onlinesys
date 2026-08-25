@@ -287,3 +287,9 @@ Kept our dark identity rather than Max's white — can flip if the owner prefers
 Nothing to do on Wix: the TV just needs to open <domain>/display fullscreen
 (Fire TV Stick / Android TV box / an old iPad — not Apple TV, tvOS has no
 browser).
+
+**/display restyled to match Max Burgers exactly** (owner sent a photo of Max's
+board): light grey background, grey Tillagas/Hämta labels, dark charcoal chips
+for preparing, Max-green ready cells with the just-ready number as a big hero,
+vertical divider, numbers only — no logo/clock/footer chrome, no times, no
+dine-in marks. Same live feed underneath. Verified at 1920×1080.
