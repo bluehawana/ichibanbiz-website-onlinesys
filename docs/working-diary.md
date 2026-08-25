@@ -239,3 +239,12 @@ afterwards (backup in /root/backups/ichiban/).
 **Worth doing before real volume:** orders.json grows forever and is rewritten
 on every change — archive done/cancelled orders older than N days to keep the
 write small. Not urgent at restaurant scale.
+
+**Kitchen dashboard in SV / EN / 中文.** The kitchen staff aren't Swedish
+speakers. `admin/app.js` now has a full dictionary for the three languages
+(login, tabs, cards, buttons, statuses, notifications, the Öppettider form,
+the sound gate, document titles) with a switch in the header and on the login
+screen, remembered per device in localStorage. Order lines carry `name_en`
+from the server so dishes read in English under EN and 中文 (the menu has no
+Chinese names; Swedish falls back where English is missing). Customer notes
+are shown as typed. Checked in the browser on a local server in all three.

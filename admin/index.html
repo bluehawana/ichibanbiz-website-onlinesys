@@ -43,6 +43,9 @@
   .paid { color:var(--ok); font-weight:700; font-size:0.9rem; }
   .unpaid { color:var(--gold); font-weight:600; font-size:0.9rem; }
   .actions { display:flex; gap:0.6rem; margin-top:0.9rem; flex-wrap:wrap; }
+  .langs { display:flex; gap:0.3rem; justify-content:center; }
+  .langs button { background:none; border:1px solid var(--line); color:var(--dim); border-radius:999px; padding:0.3rem 0.7rem; font:inherit; font-size:0.8rem; font-weight:700; letter-spacing:0.05em; }
+  .langs button.active { background:var(--ink); color:var(--bg); border-color:var(--ink); }
   .hours-form { display:grid; gap:0.7rem; }
   .hours-form label { display:grid; gap:0.25rem; font-size:0.9rem; color:var(--dim); }
   .hours-form input { font:inherit; padding:0.65rem 0.8rem; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--ink); }
@@ -68,6 +71,8 @@
   #login input { width:100%; padding:1rem; font-size:1.6rem; text-align:center; letter-spacing:0.5em; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:12px; margin:1rem 0; }
   #login button { width:100%; padding:1rem; border-radius:12px; border:none; background:var(--aka); color:#fff; font:inherit; font-weight:700; font-size:1.05rem; }
   #login .err { color:var(--aka); min-height:1.4em; margin-top:0.6rem; }
+  #login .langs button { width:auto; padding:0.3rem 0.8rem; font-size:0.8rem; background:none; color:var(--dim); border:1px solid var(--line); }
+  #login .langs button.active { background:var(--ink); color:var(--bg); border-color:var(--ink); }
   /* sound gate */
   #soundgate { position:fixed; inset:0; background:rgba(23,19,16,.92); z-index:50; display:none; place-items:center; text-align:center; padding:1.5rem; }
   #soundgate.show { display:grid; }
@@ -79,32 +84,34 @@
 
 <div id="login" hidden>
   <img class="logo-badge" src="/assets/img/site/logo-192.png" alt="" style="width:40px;height:40px">
-  <h1>Ichiban Kök</h1>
-  <p style="color:var(--dim)">Ange PIN-kod för att se beställningar</p>
+  <h1 data-i18n="title">Ichiban Kök</h1>
+  <p style="color:var(--dim)" data-i18n="login.hint">Ange PIN-kod för att se beställningar</p>
   <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12" aria-label="PIN-kod">
-  <button id="login-btn">Logga in</button>
+  <button id="login-btn" data-i18n="login.btn">Logga in</button>
+  <div class="langs" style="margin-top:1.2rem"></div>
   <p class="err" id="login-err"></p>
 </div>
 
 <div id="app" hidden>
   <header>
     <img class="logo-badge" src="/assets/img/site/logo.png" alt="" style="width:96px;height:96px;margin:0 auto 1.2rem;display:block">
-    <h1>Ichiban Kök</h1>
+    <h1 data-i18n="title">Ichiban Kök</h1>
+    <div class="langs"></div>
     <span id="clock" style="color:var(--dim);font-variant-numeric:tabular-nums"></span>
     <div class="dot" id="conn" title="Anslutning"></div>
   </header>
   <div class="tabs">
-    <button id="tab-orders" class="active">Beställningar<span class="badge" id="badge-orders" hidden></span></button>
-    <button id="tab-bookings">Bokningar<span class="badge" id="badge-bookings" hidden></span></button>
-    <button id="tab-hours">Öppettider</button>
+    <button id="tab-orders" class="active"><span data-i18n="tab.orders">Beställningar</span><span class="badge" id="badge-orders" hidden></span></button>
+    <button id="tab-bookings"><span data-i18n="tab.bookings">Bokningar</span><span class="badge" id="badge-bookings" hidden></span></button>
+    <button id="tab-hours"><span data-i18n="tab.hours">Öppettider</span></button>
   </div>
   <main id="list"></main>
 </div>
 
 <div id="soundgate">
   <div>
-    <button id="soundgate-btn">🔔 Aktivera larmljud</button>
-    <p>Tryck en gång så att surfplattan/telefonen får spela larm när nya beställningar kommer in. Lägg gärna till sidan på hemskärmen.</p>
+    <button id="soundgate-btn" data-i18n="sound.btn">🔔 Aktivera larmljud</button>
+    <p data-i18n="sound.p">Tryck en gång så att surfplattan/telefonen får spela larm när nya beställningar kommer in. Lägg gärna till sidan på hemskärmen.</p>
   </div>
 </div>
 

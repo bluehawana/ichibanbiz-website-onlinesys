@@ -440,7 +440,7 @@ function createOrder(body) {
     if (!it || !qty) throw new Error('Okänd rätt i varukorgen.');
     let option = null;
     if (it.options && raw.option && it.options.choices.includes(String(raw.option))) option = String(raw.option);
-    lines.push({ id: it.id, name: it.name, qty, unitPrice: it.price, option, lineTotal: it.price * qty });
+    lines.push({ id: it.id, name: it.name, name_en: it.name_en || '', qty, unitPrice: it.price, option, lineTotal: it.price * qty }); // name_en: kitchen staff can read the order in English
     total += it.price * qty;
   }
 
