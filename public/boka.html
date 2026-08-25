@@ -129,6 +129,10 @@
       const res = await fetch(`/api/booking-slots?date=${encodeURIComponent(dateEl.value)}&guests=${encodeURIComponent(guestsEl.value)}`);
       const data = await res.json();
       if (!res.ok) throw 0;
+      if (data.closed) {
+        slotsEl.innerHTML = `<p class="muted" style="grid-column:1/-1">${tt('Vi håller stängt den dagen — välj ett annat datum.')}</p>`;
+        return;
+      }
       if (!data.slots.some((s) => s.available)) {
         slotsEl.innerHTML = `<p class="muted" style="grid-column:1/-1">${tt('Inga lediga tider den dagen — välj ett annat datum.')}</p>`;
         return;

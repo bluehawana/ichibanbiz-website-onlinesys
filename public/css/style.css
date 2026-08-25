@@ -390,6 +390,18 @@ section.block.tight { padding: 3rem 0; }
 .notice { background: rgba(226,177,60,0.12); border: 1px solid rgba(226,177,60,0.5); color: var(--ink); border-radius: 10px; padding: 0.8rem 1.1rem; margin-top: 1.4rem; font-size: 0.95rem; line-height: 1.5; }
 .notice a { color: var(--gold); font-weight: 600; }
 .notice[hidden] { display: none; }
+
+/* closed-days lightbox (site.js) */
+.lightbox { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 1.2rem; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); opacity: 0; transition: opacity .25s; }
+.lightbox.show { opacity: 1; }
+.lightbox-card { position: relative; width: min(100%, 460px); background: var(--bg-raise); border: 1px solid var(--line); border-top: 4px solid var(--aka); border-radius: var(--radius); padding: 2rem 1.8rem 1.6rem; box-shadow: var(--shadow); transform: translateY(12px); transition: transform .25s; }
+.lightbox.show .lightbox-card { transform: none; }
+.lightbox-card h2 { font-size: clamp(1.7rem, 4vw, 2.2rem); margin: 0.2rem 0 0.4rem; }
+.lightbox-card .when { font-family: var(--font-hand); font-size: 1.25rem; color: var(--gold); text-transform: capitalize; }
+.lightbox-card .msg { margin-top: 0.8rem; font-family: var(--font-hand); font-size: 1.1rem; color: var(--ink); line-height: 1.5; }
+.lightbox-card .small { font-size: 0.9rem; margin-top: 0.8rem; }
+.lightbox-card .lightbox-ok { margin-top: 1.4rem; width: 100%; justify-content: center; }
+.lightbox-close { position: absolute; top: 0.7rem; right: 0.7rem; width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: none; color: var(--ink); font-size: 1.4rem; line-height: 1; }
 .form-note { color: var(--ink-faint); font-size: 0.85rem; }
 
 /* service type: takeaway vs dine-in order-ahead */

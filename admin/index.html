@@ -43,6 +43,15 @@
   .paid { color:var(--ok); font-weight:700; font-size:0.9rem; }
   .unpaid { color:var(--gold); font-weight:600; font-size:0.9rem; }
   .actions { display:flex; gap:0.6rem; margin-top:0.9rem; flex-wrap:wrap; }
+  .hours-form { display:grid; gap:0.7rem; }
+  .hours-form label { display:grid; gap:0.25rem; font-size:0.9rem; color:var(--dim); }
+  .hours-form input { font:inherit; padding:0.65rem 0.8rem; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--ink); }
+  .hours-form .two { display:grid; grid-template-columns:1fr 1fr; gap:0.7rem; }
+  .hours-form button { padding:0.85rem; border-radius:11px; border:none; background:var(--aka); color:#fff; font:inherit; font-weight:700; font-size:1.02rem; }
+  .closure { display:flex; justify-content:space-between; align-items:center; gap:0.8rem; }
+  .closure .when { font-weight:700; font-size:1.05rem; }
+  .closure .msg { color:var(--dim); font-size:0.92rem; }
+  .closure .del { background:none; border:1px solid var(--line); color:var(--ink); border-radius:9px; padding:0.45rem 0.7rem; font:inherit; }
   .actions button { flex:1; min-width:120px; padding:0.85rem; border-radius:11px; border:none; font:inherit; font-weight:700; font-size:1.02rem; }
   .b-accept { background:var(--aka); color:#fff; }
   .b-ready { background:var(--gold); color:#241d0c; }
@@ -87,6 +96,7 @@
   <div class="tabs">
     <button id="tab-orders" class="active">Beställningar<span class="badge" id="badge-orders" hidden></span></button>
     <button id="tab-bookings">Bokningar<span class="badge" id="badge-bookings" hidden></span></button>
+    <button id="tab-hours">Öppettider</button>
   </div>
   <main id="list"></main>
 </div>

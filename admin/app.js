@@ -111,6 +111,7 @@
   }
 
   function render() {
+    if (tab === 'hours') { renderHours(); return; }
     const list = $('list');
     if (tab === 'orders') {
       const active = ordersList.filter((o) => !['done', 'cancelled'].includes(o.status));
@@ -135,9 +136,53 @@
     return res.json();
   }
   async function loadAll() {
-    const [o, b] = await Promise.all([api('/api/admin/orders'), api('/api/admin/reservations')]);
-    ordersList = o.orders; bookings = b.reservations;
+    const [o, b, c] = await Promise.all([api('/api/admin/orders'), api('/api/admin/reservations'), api('/api/admin/closures')]);
+    ordersList = o.orders; bookings = b.reservations; closures = c.closures || [];
     render();
+  }
+
+  // ---------------- opening hours: closed days ----------------
+  let closures = [];
+  const fmtDay = (iso) => new Date(iso + 'T12:00').toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' });
+  function closureRange(c) { return c.from === c.to ? fmtDay(c.from) : `${fmtDay(c.from)} – ${fmtDay(c.to)}`; }
+  function renderHours() {
+    const today = new Date().toISOString().slice(0, 10);
+    const listHtml = closures.length
+      ? closures.map((c) => `<div class="card closure"><div><div class="when">Stängt ${esc(closureRange(c))}</div>${c.message ? `<div class="msg">${esc(c.message)}</div>` : ''}</div><button class="del" data-del="${esc(c.id)}">Ta bort</button></div>`).join('')
+      : '<p class="empty">Inga planerade stängningar. Ordinarie öppettider gäller.</p>';
+    list.innerHTML = `
+      <div class="card">
+        <div class="num" style="font-size:1.15rem;margin-bottom:0.6rem">Stäng restaurangen</div>
+        <p class="meta" style="margin-bottom:0.8rem">En dag eller en period. Inga beställningar eller bokningar tas emot de dagarna, och kunderna får ett meddelande på hemsidan.</p>
+        <form class="hours-form" id="closure-form">
+          <div class="two">
+            <label>Från<input type="date" id="cl-from" min="${today}" required></label>
+            <label>Till<input type="date" id="cl-to" min="${today}"></label>
+          </div>
+          <label>Meddelande till kunderna (svenska)<input id="cl-msg" maxlength="200" placeholder="t.ex. Semesterstängt – vi ses igen den 12 augusti!"></label>
+          <label>Message in English (optional)<input id="cl-msg-en" maxlength="200" placeholder="e.g. Closed for holidays – back on 12 August!"></label>
+          <button type="submit">Lägg till stängning</button>
+          <p class="err" id="cl-err"></p>
+        </form>
+      </div>
+      <div class="num" style="font-size:1rem;margin-top:0.4rem">Planerade stängningar</div>
+      ${listHtml}`;
+    $('closure-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      $('cl-err').textContent = '';
+      const body = { from: $('cl-from').value, to: $('cl-to').value || $('cl-from').value, message: $('cl-msg').value, message_en: $('cl-msg-en').value };
+      const res = await fetch('/api/admin/closures', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) { $('cl-err').textContent = data.error || 'Något gick fel.'; return; }
+      closures = (await api('/api/admin/closures')).closures;
+      renderHours();
+    });
+    list.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
+      if (!confirm('Ta bort stängningen och öppna som vanligt?')) return;
+      await fetch(`/api/admin/closures/${b.dataset.del}`, { method: 'DELETE' });
+      closures = (await api('/api/admin/closures')).closures;
+      renderHours();
+    }));
   }
   function connectSSE() {
     if (es) es.close();
@@ -194,8 +239,12 @@
   });
 
   // tabs
-  $('tab-orders').addEventListener('click', () => { tab = 'orders'; $('tab-orders').classList.add('active'); $('tab-bookings').classList.remove('active'); render(); });
-  $('tab-bookings').addEventListener('click', () => { tab = 'bookings'; $('tab-bookings').classList.add('active'); $('tab-orders').classList.remove('active'); render(); });
+  const TABS = ['orders', 'bookings', 'hours'];
+  TABS.forEach((t) => $('tab-' + t).addEventListener('click', () => {
+    tab = t;
+    TABS.forEach((x) => $('tab-' + x).classList.toggle('active', x === t));
+    render();
+  }));
 
   // clock
   setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }); }, 1000);

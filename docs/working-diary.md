@@ -180,3 +180,17 @@ function (Stripe return, e-mails, Swish callback need one). bluehawana.com is on
 Cloudflare; the local wrangler token is expired and never had DNS scope, so the A
 record goes in via the dashboard, then nginx server block + certbot on the VPS
 (same recipe as jobs.bluehawana.com). In progress at the time of this entry.
+
+**Closed days (Wix parity).** Owner: "set the restaurant closed one day or
+several days, and a lightbox telling customers". Built: `data/closures.json`
+(`{id, from, to, message, message_en}`), `closureFor(date)` consulted by pickup
+slots, booking slots (`closed: true` in the API), reservation creation and —
+through `validPickup` — order creation. `/api/config` lists current + future
+closures; `site.js` shows a lightbox once per closure per browser session
+(SV/EN, Esc/scrim/close, focus restored) for anything active or starting within
+three weeks, and swaps the hero's "Öppet idag" for "Stängt idag". Kitchen
+dashboard gets an **Öppettider** tab: from/to dates, message in Swedish and
+optionally English, list with "Ta bort". Admin API: `GET/POST
+/api/admin/closures`, `DELETE /api/admin/closures/:id` (≤90 days, no past
+dates). Smoke test covers the whole loop. Verified in the browser on a local
+server with a test closure: lightbox at 390/1280, dashboard tab, delete.

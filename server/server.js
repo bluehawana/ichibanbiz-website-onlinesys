@@ -88,6 +88,16 @@ function saveJson(file, value) {
 
 let orders = loadJson('orders.json', []);
 let reservations = loadJson('reservations.json', []);
+let closures = loadJson('closures.json', []); // [{ id, from, to, message, message_en, createdAt }] — days the restaurant is closed
+
+// ---------------------------------------------------------------- closures (holidays, private events, ...)
+function isoDate(d) { return `${d.getFullYear()}-${fmt2(d.getMonth() + 1)}-${fmt2(d.getDate())}`; }
+function closureFor(dateStr) { return closures.find((c) => c.from <= dateStr && dateStr <= c.to) || null; }
+function upcomingClosures() {
+  const t = isoDate(new Date());
+  return closures.filter((c) => c.to >= t).sort((a, b) => a.from.localeCompare(b.from));
+}
+function publicClosure(c) { return { id: c.id, from: c.from, to: c.to, message: c.message, message_en: c.message_en }; }
 
 function nextOrderNumber() {
   const today = new Date().toISOString().slice(0, 10);
@@ -163,6 +173,7 @@ function rateLimited(req, max = 20) {
 function fmt2(n) { return String(n).padStart(2, '0'); }
 function slotsForDate(date, now) {
   const dow = date.getDay();
+  if (closureFor(isoDate(date))) return []; // closed that day: no pickup at all
   const [open, close] = HOURS[dow];
   const isToday = date.toDateString() === now.toDateString();
   const earliest = isToday ? (now.getHours() * 60 + now.getMinutes() + MIN_LEAD_MIN) : 0;
@@ -598,6 +609,7 @@ function bookedGuestsAt(date, startMin) {
 function bookingSlots(dateStr, guests) {
   const d = new Date(dateStr + 'T12:00');
   if (isNaN(d)) return null;
+  if (closureFor(dateStr)) return []; // closed: nothing bookable
   const [open, close] = HOURS[d.getDay()];
   const now = new Date();
   const isToday = d.toDateString() === now.toDateString();
@@ -624,6 +636,7 @@ function createReservation(body) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) throw new Error('Ogiltigt datum eller tid.');
   const d = new Date(date + 'T' + time);
   if (isNaN(d) || d < new Date()) throw new Error('Tiden har redan passerat.');
+  if (closureFor(date)) throw new Error('Vi håller stängt den dagen.');
   const [open, close] = HOURS[d.getDay()];
   const [th, tm] = time.split(':').map(Number);
   const mins = th * 60 + tm;
@@ -719,6 +732,7 @@ const server = http.createServer(async (req, res) => {
         swish: SWISH_ENABLED,
         currency: 'SEK',
         reviewUrl: REVIEW_URL || (GOOGLE_PLACE_ID ? `https://search.google.com/local/writereview?placeid=` : null),
+        closures: upcomingClosures().map(publicClosure), // current + future closed periods, for the site's notice
       });
     }
 
@@ -728,7 +742,7 @@ const server = http.createServer(async (req, res) => {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return sendJson(res, 400, { error: 'bad date' });
       const slots = bookingSlots(date, guests);
       if (!slots) return sendJson(res, 400, { error: 'bad date' });
-      return sendJson(res, 200, { date, guests, slots });
+      return sendJson(res, 200, { date, guests, slots, closed: Boolean(closureFor(date)) });
     }
     if (p === '/api/pickup-slots' && req.method === 'GET') return sendJson(res, 200, { days: pickupSlots(), minLeadMin: MIN_LEAD_MIN });
 
@@ -855,6 +869,35 @@ const server = http.createServer(async (req, res) => {
     // ---------- admin API (PIN-protected)
     if (p.startsWith('/api/admin/')) {
       if (!isAdmin(req)) return sendJson(res, 401, { error: 'unauthorized' });
+
+      // ---- closures: days the restaurant is closed (set from the dashboard)
+      if (p === '/api/admin/closures' && req.method === 'GET') return sendJson(res, 200, { closures: upcomingClosures() });
+      if (p === '/api/admin/closures' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const from = sanitizeStr(body.from, 10);
+        const to = sanitizeStr(body.to, 10) || from;
+        const dre = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dre.test(from) || !dre.test(to) || isNaN(new Date(from + 'T12:00')) || isNaN(new Date(to + 'T12:00'))) return sendJson(res, 400, { error: 'Ogiltigt datum.' });
+        if (to < from) return sendJson(res, 400, { error: 'Slutdatum ligger före startdatum.' });
+        if ((new Date(to + 'T12:00') - new Date(from + 'T12:00')) / 86400000 > 90) return sendJson(res, 400, { error: 'Max 90 dagar i taget.' });
+        if (to < isoDate(new Date())) return sendJson(res, 400, { error: 'Datumet har redan passerat.' });
+        const c = {
+          id: crypto.randomUUID(), from, to,
+          message: sanitizeStr(body.message, 200), message_en: sanitizeStr(body.message_en, 200),
+          createdAt: new Date().toISOString(),
+        };
+        closures.push(c);
+        saveJson('closures.json', closures);
+        return sendJson(res, 201, { closure: c });
+      }
+      const closureDel = p.match(/^\/api\/admin\/closures\/([\w-]+)$/);
+      if (closureDel && req.method === 'DELETE') {
+        const before = closures.length;
+        closures = closures.filter((c) => c.id !== closureDel[1]);
+        if (closures.length === before) return sendJson(res, 404, { error: 'not found' });
+        saveJson('closures.json', closures);
+        return sendJson(res, 200, { ok: true });
+      }
 
       if (p === '/api/admin/orders' && req.method === 'GET') {
         const today = new Date(); today.setDate(today.getDate() - 2);

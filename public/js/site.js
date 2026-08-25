@@ -87,14 +87,61 @@
   const y = document.getElementById('year');
   if (y) y.textContent = String(new Date().getFullYear());
 
-  // Google review section: shown only when the server has a place id configured
+  // Site config: Google review link + closed days (set from the kitchen dashboard)
   const reviewSection = document.getElementById('review-section');
-  if (reviewSection) {
-    fetch('/api/config').then((r) => r.json()).then((cfg) => {
-      if (cfg.reviewUrl) {
-        document.getElementById('review-link').href = cfg.reviewUrl;
-        reviewSection.hidden = false;
-      }
-    }).catch(() => {});
+  fetch('/api/config').then((r) => r.json()).then((cfg) => {
+    if (reviewSection && cfg.reviewUrl) {
+      document.getElementById('review-link').href = cfg.reviewUrl;
+      reviewSection.hidden = false;
+    }
+    showClosures(cfg.closures || []);
+  }).catch(() => {});
+
+  // ---------- closed days: lightbox + "Stängt idag" ----------
+  function showClosures(closures) {
+    if (!closures.length) return;
+    const en = window.I18N && window.I18N.lang === 'en';
+    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const today = iso(new Date());
+    const soon = iso(new Date(Date.now() + 21 * 86400000)); // announce closures up to three weeks ahead
+    const fmt = (s) => new Date(s + 'T12:00').toLocaleDateString(en ? 'en-GB' : 'sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
+    const range = (c) => (c.from === c.to ? fmt(c.from) : `${fmt(c.from)} – ${fmt(c.to)}`);
+
+    const current = closures.find((c) => c.from <= today && today <= c.to);
+    if (current && todayEl) todayEl.textContent = en ? 'Closed today' : 'Stängt idag';
+
+    const c = current || closures.find((c) => c.from <= soon);
+    if (!c) return;
+    let seen = false;
+    try { seen = sessionStorage.getItem('closure-seen-' + c.id) === '1'; } catch {}
+    if (seen) return;
+
+    const box = document.createElement('div');
+    box.className = 'lightbox';
+    box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'lb-title');
+    const msg = (en && c.message_en) || c.message || '';
+    box.innerHTML = `
+      <div class="lightbox-card">
+        <button type="button" class="lightbox-close" aria-label="${en ? 'Close' : 'Stäng'}">&times;</button>
+        <p class="kicker">${en ? 'Please note' : 'Observera'}</p>
+        <h2 id="lb-title">${current ? (en ? 'We are closed today' : 'Vi har stängt idag') : (en ? 'We will be closed' : 'Vi håller stängt')}</h2>
+        <p class="when">${range(c)}</p>
+        ${msg ? `<p class="msg"></p>` : ''}
+        <p class="muted small">${en ? 'No orders or bookings are taken for those days. Welcome back after that!' : 'Inga beställningar eller bokningar tas emot de dagarna. Varmt välkommen därefter!'}</p>
+        <button type="button" class="btn btn-primary lightbox-ok">${en ? 'OK, got it' : 'OK, jag förstår'}</button>
+      </div>`;
+    if (msg) box.querySelector('.msg').textContent = msg;
+    document.body.appendChild(box);
+    const prev = document.activeElement;
+    const close = () => {
+      box.remove();
+      try { sessionStorage.setItem('closure-seen-' + c.id, '1'); } catch {}
+      if (prev && prev.focus) prev.focus();
+    };
+    box.querySelector('.lightbox-close').addEventListener('click', close);
+    box.querySelector('.lightbox-ok').addEventListener('click', close);
+    box.addEventListener('click', (e) => { if (e.target === box) close(); });
+    document.addEventListener('keydown', function onKey(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } });
+    requestAnimationFrame(() => { box.classList.add('show'); box.querySelector('.lightbox-ok').focus(); });
   }
 })();

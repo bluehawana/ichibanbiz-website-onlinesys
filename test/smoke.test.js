@@ -317,3 +317,37 @@ test('booking validation: outside hours and past dates rejected', async () => {
   assert.equal((await post('/api/reservations', { name: 'X Y', phone: '0701111111', guests: 2, date: DATE, time: '23:00' })).status, 400);
   assert.equal((await post('/api/reservations', { name: 'X Y', phone: '0701111111', guests: 2, date: '2020-01-01', time: '18:00' })).status, 400);
 });
+
+test('closures: dashboard closes a day; pickup, booking and reservation refuse it; config announces it', async () => {
+  const login = await post('/api/admin/login', { pin: '9999' });
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  assert.equal((await fetch(B + '/api/admin/closures')).status, 401, 'closures api needs the admin cookie');
+
+  const day = nextFullDay(); // a future date the other tests also consider bookable
+  const bad = await fetch(B + '/api/admin/closures', { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ from: day, to: '2020-01-01' }) });
+  assert.equal(bad.status, 400, 'end before start rejected');
+
+  const created = await fetch(B + '/api/admin/closures', { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ from: day, message: 'Semesterstängt' }) });
+  assert.equal(created.status, 201);
+  const { closure } = await created.json();
+  assert.equal(closure.to, day, 'single day closure: to defaults to from');
+
+  const cfg = await (await fetch(B + '/api/config')).json();
+  assert.ok(cfg.closures.some((c) => c.id === closure.id && c.message === 'Semesterstängt'), 'public config lists the closure');
+
+  const booking = await (await fetch(`${B}/api/booking-slots?date=${day}&guests=2`)).json();
+  assert.equal(booking.closed, true);
+  assert.equal(booking.slots.length, 0, 'no booking slots on a closed day');
+
+  const resv = await post('/api/reservations', { name: 'Test Testsson', phone: '0701234567', guests: 2, date: day, time: '18:00' });
+  assert.equal(resv.status, 400, 'reservation on a closed day refused');
+  assert.match((await resv.json()).error, /stängt/i);
+
+  const pickup = await (await fetch(B + '/api/pickup-slots')).json();
+  assert.ok(!pickup.days.some((d) => d.date === day), 'pickup slots skip the closed day');
+
+  const del = await fetch(`${B}/api/admin/closures/${closure.id}`, { method: 'DELETE', headers: { cookie } });
+  assert.equal(del.status, 200);
+  const after = await (await fetch(`${B}/api/booking-slots?date=${day}&guests=2`)).json();
+  assert.ok(after.slots.length > 0, 'slots are back once the closure is removed');
+});
