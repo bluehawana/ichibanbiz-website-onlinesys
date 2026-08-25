@@ -159,8 +159,17 @@ async function readJsonBody(req) {
 // very small in-memory rate limiter: max N requests per IP per minute for POSTs
 const RATE_MAX = parseInt(process.env.RATE_LIMIT_MAX || '10', 10);
 const rl = new Map();
+// Behind nginx every connection comes from 127.0.0.1, so the real client IP is the
+// first X-Forwarded-For entry — trusted only when the socket really is the local proxy,
+// otherwise a client could reset its own bucket by sending the header.
+function clientIp(req) {
+  const sock = req.socket.remoteAddress || '?';
+  const local = sock === '127.0.0.1' || sock === '::1' || sock === '::ffff:127.0.0.1';
+  const fwd = local && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return fwd || sock;
+}
 function rateLimited(req, max = 20) {
-  const ip = req.socket.remoteAddress || '?';
+  const ip = clientIp(req);
   const now = Date.now();
   const entry = rl.get(ip) || { t: now, n: 0 };
   if (now - entry.t > 60000) { entry.t = now; entry.n = 0; }

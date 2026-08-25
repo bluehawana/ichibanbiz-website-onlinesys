@@ -351,3 +351,14 @@ test('closures: dashboard closes a day; pickup, booking and reservation refuse i
   const after = await (await fetch(`${B}/api/booking-slots?date=${day}&guests=2`)).json();
   assert.ok(after.slots.length > 0, 'slots are back once the closure is removed');
 });
+
+test('rate limiter buckets per real client IP behind the proxy, not per socket', async () => {
+  // 12 failed logins from "customer A" trip the limit for A only; "customer B" is unaffected
+  const hit = (ip) => fetch(B + '/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-forwarded-for': ip }, body: JSON.stringify({ pin: '0000' }) });
+  // the suite boots the server with RATE_LIMIT_MAX=1000, so cross that from A in bursts
+  let statuses = [];
+  for (let b = 0; b < 11; b++) statuses = statuses.concat(await Promise.all(Array.from({ length: 100 }, () => hit('203.0.113.10').then((r) => r.status))));
+  assert.ok(statuses.includes(429), 'customer A is rate limited after many attempts');
+  const other = await hit('203.0.113.20');
+  assert.equal(other.status, 401, 'customer B still gets a normal (wrong PIN) answer');
+});
