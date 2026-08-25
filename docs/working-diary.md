@@ -248,3 +248,23 @@ screen, remembered per device in localStorage. Order lines carry `name_en`
 from the server so dishes read in English under EN and 中文 (the menu has no
 Chinese names; Swedish falls back where English is missing). Customer notes
 are shown as typed. Checked in the browser on a local server in all three.
+
+**Stripe webhook on the demo — fixed.** Symptom: Stripe deliveries to
+demo.bluehawana.com/api/stripe/webhook returned 400 (bad signature), so paid
+orders would only reach the kitchen via the reconciliation sweep, not
+instantly. Ruled out clock skew, body handling and cross-account (the live key
+is account **hong yan ab** acct_1U0ev3D; the demo destination was in the same
+account). Root cause: the STRIPE_WEBHOOK_SECRET in .env was the *ichiban.biz*
+destination's secret, not the demo one — the two rows look alike in Workbench
+and the wrong one was copied twice. Fix (owner approved): created a fresh demo
+destination via the Stripe API with the server's own key (guaranteed same
+account/mode), wrote its secret straight into .env, restarted, verified a real
+checkout.session.expired delivery returns 200 and cancels the order, then
+deleted the stale demo destination. Now exactly one demo destination, 200s
+only. Left the ichiban.biz + order.ichiban.biz destinations untouched.
+
+**At the ichiban.biz cutover:** the ichiban.biz destination already exists with
+the right events but its secret isn't the one in .env — redo the same swap
+(its secret → .env) when BASE_URL moves to https://ichiban.biz, or recreate it
+via API the same way. order.ichiban.biz is an old destination with only
+checkout.session.completed; delete it unless it's used elsewhere.
