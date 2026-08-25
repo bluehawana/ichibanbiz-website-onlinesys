@@ -143,13 +143,15 @@ async function functional() {
       const cs = await req('GET', `/api/reservations/${b.id}?token=${b.token}`);
       ok('kitchen confirms → guest status page shows "confirmed"', c.status === 200 && cs.json && cs.json.status === 'confirmed', cs.json && cs.json.status);
       const dup = await req('POST', '/api/reservations', { body: { name: `${TAG} gäst`, phone: '0700000000', guests: 99, date: bdate, time: free.time, lang: 'sv' }, ip: '10.1.0.4' });
-      ok('oversized party is refused', dup.status === 400 || (dup.status === 201 && dup.json.guests <= 20), String(dup.status));
+      ok('oversized party (99) is capped or refused', dup.status === 400 || (dup.status === 201 && dup.json.guests <= 20), `${dup.status}${dup.status === 201 ? ' capped to ' + dup.json.guests : ''}`);
       if (dup.status === 201) created.reservations.push(dup.json);
     }
   }
 
-  // 4. dine-in order-ahead: order + table in one go
-  r = await req('POST', '/api/orders', { body: orderBody(5, { serviceType: 'dinein', guests: 2 }), ip: '10.1.0.5' });
+  // 4. dine-in order-ahead: order + table in one go (arrival time must be a bookable time)
+  const dslots = (await req('GET', `/api/booking-slots?date=${bdate}&guests=2`)).json.slots || [];
+  const dfree = dslots.filter((s) => s.available); const dtime = (dfree[Math.floor(dfree.length / 2)] || dfree[0] || {}).time;
+  r = await req('POST', '/api/orders', { body: orderBody(5, { serviceType: 'dinein', guests: 2, pickupDate: bdate, pickupTime: dtime }), ip: '10.1.0.5' });
   ok('dine-in order-ahead accepted and linked to a table', r.status === 201 && !!r.json.reservationId, r.status !== 201 ? JSON.stringify(r.json) : '');
   if (r.status === 201) created.orders.push(r.json);
 

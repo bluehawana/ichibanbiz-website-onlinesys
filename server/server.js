@@ -165,7 +165,9 @@ const rl = new Map();
 function clientIp(req) {
   const sock = req.socket.remoteAddress || '?';
   const local = sock === '127.0.0.1' || sock === '::1' || sock === '::ffff:127.0.0.1';
-  const fwd = local && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  // nginx APPENDS the real address to whatever the client sent, so the trustworthy
+  // entry is the last one — never the first, which a client can forge.
+  const fwd = local && String(req.headers['x-forwarded-for'] || '').split(',').pop().trim();
   return fwd || sock;
 }
 function rateLimited(req, max = 20) {
