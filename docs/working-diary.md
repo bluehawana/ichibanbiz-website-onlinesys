@@ -140,3 +140,43 @@ bank's Swish Handel agreement in `.env` on the VPS. Number alone does nothing.
 2. Screenshot-sweep boka/om/integritet at phone width (not done this pass).
 3. Unchanged from before: Swish Handel from the bank, the 10 kr Stripe test,
    DNS cutover, cancel Wix.
+
+## 2026-08-25 (night) — Payment return path, one-line wordmark, a real mobile menu
+
+**Payment 404.** Owner tested a card payment and backed out of Stripe: landed on
+`https://www.ichiban.biz/bestall?cancelled=1` → Wix 404. The systemd unit on the
+VPS carries `Environment=BASE_URL=https://ichiban.biz` (overrides `.env`, which
+says the test URL) and Stripe's return URLs were built from it. Fix in code, not
+config: `returnOrigin(req)` builds success/cancel URLs from the browser's
+validated `Origin` header (nginx forwards `Host` as `$host`, which drops the
+`:8088` port — Origin keeps it), BASE_URL only as fallback. Cart is no longer
+wiped before the Stripe redirect; `/order` clears it once the order really
+exists; `/bestall?cancelled=1` shows a SV/EN notice (nothing charged, cart kept,
+link home). Note for cutover: the unit's BASE_URL still matters for e-mail links
+and the Swish callback.
+
+**Wordmark, third round.** Owner: ICHIBAN and SUSHI on one line, "like a name",
+not stacked. New 1074×101 Chalkduster render (`wordmark-chalk-wide.png`) used at
+every width — 28 px tall on desktop, 21 px on phones, 18 px under 380 px. The
+SV/EN button moves into the slide-in panel on phones to make room (i18n.js
+injects it on DOMContentLoaded, so `place()` re-runs there). Stacked PNG deleted.
+
+**Header/nav/footer polish.** Header is 60 px (`--head-h`, also used by the menu
+page's sticky category bar). Hamburger is a real slide-in panel from the right:
+scrim, close button, Esc, Tab focus loop, body scroll lock, focus restored to
+the toggle, closes on link tap and on resize to desktop. Gotcha that cost a
+round: the header's `backdrop-filter` makes it the containing block for fixed
+descendants, so the panel was squashed to 60 px — on phones the `<nav>` is moved
+into `<body>` (and back into the bar on desktop). Hero height 88vh→72vh and
+padding trimmed; section padding 5.5→4.5 rem (3.2 on phones); footer gets an
+opening-hours column and loses the placeholder instagram.com/facebook.com links.
+
+**Verified (actually).** Headless-Chrome screenshots: 360/390/768/1280 px,
+panel closed and open, home/menu/order pages, real fonts and Cabin Sketch/Gochi
+Hand fallback. `node --test`: 15 pass, 0 fail.
+
+**demo.bluehawana.com.** Owner wants a real hostname on this VPS to test every
+function (Stripe return, e-mails, Swish callback need one). bluehawana.com is on
+Cloudflare; the local wrangler token is expired and never had DNS scope, so the A
+record goes in via the dashboard, then nginx server block + certbot on the VPS
+(same recipe as jobs.bluehawana.com). In progress at the time of this entry.
