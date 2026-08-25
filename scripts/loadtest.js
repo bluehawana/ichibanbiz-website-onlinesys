@@ -152,8 +152,11 @@ async function functional() {
   const dslots = (await req('GET', `/api/booking-slots?date=${bdate}&guests=2`)).json.slots || [];
   const dfree = dslots.filter((s) => s.available); const dtime = (dfree[Math.floor(dfree.length / 2)] || dfree[0] || {}).time;
   r = await req('POST', '/api/orders', { body: orderBody(5, { serviceType: 'dinein', guests: 2, pickupDate: bdate, pickupTime: dtime }), ip: '10.1.0.5' });
-  ok('dine-in order-ahead accepted and linked to a table', r.status === 201 && !!r.json.reservationId, r.status !== 201 ? JSON.stringify(r.json) : '');
+  // the public order response doesn't expose the table link — check the kitchen side instead
+  const dResv = r.status === 201 ? (await req('GET', '/api/admin/reservations', { cookie })).json.reservations.find((x) => x.name === `${TAG} kund 5` && x.date === bdate && x.time === dtime) : null;
+  ok('dine-in order-ahead accepted and a table is reserved for it', r.status === 201 && !!dResv, r.status !== 201 ? JSON.stringify(r.json) : (dResv ? `${bdate} ${dtime}, ${dResv.status}` : 'no matching reservation on the kitchen side'));
   if (r.status === 201) created.orders.push(r.json);
+  if (dResv) created.reservations.push(dResv);
 
   // 5. closed day: blocks booking + pickup + order, announced in config; then removed
   const closeDate = slots.days.length > 1 ? slots.days[1].date : slots.days[0].date;

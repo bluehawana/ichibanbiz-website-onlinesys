@@ -204,3 +204,38 @@ HTTPS + redirect, and a systemd drop-in
 `BASE_URL=https://demo.bluehawana.com` — remove that drop-in (and set the real
 BASE_URL) at the ichiban.biz cutover. Still needed by the owner: a Stripe
 webhook endpoint for `https://demo.bluehawana.com/api/stripe/webhook`.
+
+## 2026-08-25 (morning) — Pre-release test pass: functional + load
+
+**Harness.** `scripts/loadtest.js` (zero deps): functional flow — order in →
+kitchen SSE "order" event (the alarm trigger) → accepted/ready/done → customer
+page follows; online order → Stripe Checkout URL and *not* on the kitchen
+screen while unpaid; booking → SSE → confirm → guest page; dine-in order-ahead
+reserves a table; closed day blocks booking/pickup/orders and shows in config;
+plus load — GET burst, N orders from N distinct simulated customers
+(X-Forwarded-For), a booking race against MAX_CONCURRENT_GUESTS, SSE fan-out
+to many screens, integrity (unique numbers, dashboard sees everything).
+Everything it creates is tagged `LOADTEST` for cleanup.
+
+**Release-blocking bug it found.** The POST rate limiter keyed on
+`req.socket.remoteAddress`, which behind nginx is always 127.0.0.1: *all*
+customers shared one bucket of 10 orders/bookings/logins per minute. Fixed by
+using X-Forwarded-For — the **last** entry (nginx appends the real address; the
+first is client-forgeable) — trusted only when the socket is the local proxy.
+Smoke test added (17 tests now).
+
+**Results.** Throwaway instance on the VPS (same code, own data dir, no
+Stripe): 5,000 GETs @100 concurrent all 200 (p95 160 ms); 1,000 orders from
+100 concurrent customers all accepted, unique numbers, 139 orders/s
+(p95 1.2 s under that burst — the whole orders.json is rewritten per order);
+80 parties of 4 racing for one time → 9 seated, 71 "fullbokad", 38/40 guests
+in window; 40 kitchen screens all got the event; RSS flat at 3.5 MB; data
+files valid afterwards. Against https://demo.bluehawana.com through nginx+TLS:
+full functional pass incl. live Stripe session, 23/24 — the one ✖ was a
+harness false negative (the public order API doesn't echo the table link),
+fixed to check the kitchen side. Tagged records removed from the demo data
+afterwards (backup in /root/backups/ichiban/).
+
+**Worth doing before real volume:** orders.json grows forever and is rewritten
+on every change — archive done/cancelled orders older than N days to keep the
+write small. Not urgent at restaurant scale.
