@@ -194,3 +194,13 @@ optionally English, list with "Ta bort". Admin API: `GET/POST
 /api/admin/closures`, `DELETE /api/admin/closures/:id` (≤90 days, no past
 dates). Smoke test covers the whole loop. Verified in the browser on a local
 server with a test closure: lightbox at 390/1280, dashboard tab, delete.
+
+**demo.bluehawana.com — done.** Owner added the A record proxied (orange cloud)
+first: Cloudflare returned 522 and nothing reached nginx, so certbot's HTTP-01
+failed. Switched to DNS-only (grey cloud) → certbot issued the certificate,
+nginx block `/etc/nginx/sites-enabled/demo.bluehawana.com` proxies to :3000 with
+HTTPS + redirect, and a systemd drop-in
+(`/etc/systemd/system/ichiban.service.d/demo-baseurl.conf`) sets
+`BASE_URL=https://demo.bluehawana.com` — remove that drop-in (and set the real
+BASE_URL) at the ichiban.biz cutover. Still needed by the owner: a Stripe
+webhook endpoint for `https://demo.bluehawana.com/api/stripe/webhook`.
