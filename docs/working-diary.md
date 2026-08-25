@@ -268,3 +268,22 @@ the right events but its secret isn't the one in .env — redo the same swap
 (its secret → .env) when BASE_URL moves to https://ichiban.biz, or recreate it
 via API the same way. order.ichiban.biz is an old destination with only
 checkout.session.completed; delete it unless it's used elsewhere.
+
+**In-restaurant order board (/display), Max-Burgers style.** Owner has a TV
+that was streaming a Wix food album; wanted it to show orders like Max's board
+(reference photo: Tillagas | Hämta, latest-ready number shown huge). Built a
+PUBLIC read-only board — no login, and deliberately **no personal data**: order
+numbers + pickup time only, never names/phones/dishes. New public routes
+`GET /api/display` (board snapshot) and `GET /api/display/stream` (SSE that just
+says "refresh", page re-fetches). `displayBoard()` buckets: preparing = new +
+accepted (sorted by number), ready = status 'ready' sorted by updatedAt desc so
+the one that just became ready is the big hero cell; older ready ones small
+beneath. `public/display.html`: brand-dark board, two columns, dine-in flagged
+🍽, auto-reconnecting SSE with 5s poll fallback + 30s safety refresh, an idle
+"Välkommen/Welcome/欢迎" screen when empty. Verified at 1920×1080 with seeded
+orders; smoke test asserts numbers-only + newest-ready-first (18 tests).
+
+Kept our dark identity rather than Max's white — can flip if the owner prefers.
+Nothing to do on Wix: the TV just needs to open <domain>/display fullscreen
+(Fire TV Stick / Android TV box / an old iPad — not Apple TV, tvOS has no
+browser).

@@ -362,3 +362,28 @@ test('rate limiter buckets per real client IP behind the proxy, not per socket',
   const other = await hit('203.0.113.20');
   assert.equal(other.status, 401, 'customer B still gets a normal (wrong PIN) answer');
 });
+
+test('public /display board: numbers only, correct buckets, newest-ready first, no personal data', async () => {
+  const login = await post('/api/admin/login', { pin: '9999' });
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  const menu = await (await fetch(B + '/api/menu')).json();
+  const item = menu.categories[0].items[0];
+  const day = nextFullDay();
+  const slots = (await (await fetch(`${B}/api/pickup-slots`)).json()).days.find((d) => d.date === day).slots;
+  async function order(time) {
+    const r = await post('/api/orders', { name: 'Board Tester', phone: '0700000000', pickupDate: day, pickupTime: time, items: [{ id: item.id, qty: 1 }], serviceType: 'pickup', paymentMethod: 'pickup', lang: 'sv' });
+    return (await r.json());
+  }
+  const a = await order(slots[0]); const b = await order(slots[1]); const c = await order(slots[2]);
+  const setSt = (id, s) => fetch(`${B}/api/admin/orders/${id}/status`, { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ status: s }) });
+  await setSt(b.id, 'accepted'); await setSt(b.id, 'ready');
+  await new Promise((r) => setTimeout(r, 30));
+  await setSt(c.id, 'accepted'); await setSt(c.id, 'ready'); // c becomes ready last → hero
+  const board = await (await fetch(`${B}/api/display`)).json();
+  const json = JSON.stringify(board);
+  assert.ok(!/Board Tester|0700000000|wakame|phone|name/i.test(json), 'board carries no personal data or dish names');
+  assert.ok(board.preparing.some((o) => o.n === a.number), 'unaccepted order is in preparing');
+  const readyNums = board.ready.map((o) => o.n);
+  assert.deepEqual(readyNums.slice(0, 2), [c.number, b.number], 'ready is newest-first (hero = last to become ready)');
+  assert.ok(!board.preparing.concat(board.ready).some((o) => o.n === undefined), 'every entry has a number');
+});

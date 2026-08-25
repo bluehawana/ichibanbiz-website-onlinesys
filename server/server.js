@@ -216,11 +216,27 @@ function validPickup(dateStr, timeStr) {
 
 // ---------------------------------------------------------------- SSE for admin
 const sseClients = new Set();
+const displayClients = new Set(); // public order board (/display) — no auth, no personal data
 function broadcast(event, data) {
   const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
   for (const res of sseClients) { try { res.write(msg); } catch { /* dropped */ } }
+  // the public pickup board only needs to know *something* changed, then it re-fetches /api/display
+  if (event === 'order' || event === 'order-status') {
+    for (const res of displayClients) { try { res.write('event: refresh\ndata: {}\n\n'); } catch { /* dropped */ } }
+  }
 }
-setInterval(() => broadcast('ping', { t: Date.now() }), 25000).unref();
+// The board shows numbers + pickup time only — never names, phones or dishes.
+function displayBoard() {
+  const map = (o) => ({ n: o.number, t: (o.pickup && o.pickup.time) || '', dinein: o.serviceType === 'dinein', u: o.updatedAt || o.createdAt || '' });
+  const preparing = orders.filter((o) => o.status === 'new' || o.status === 'accepted').map(map).sort((a, b) => a.n - b.n);
+  // ready newest-first, so the one that just became ready is the big "hero" number on the board
+  const ready = orders.filter((o) => o.status === 'ready').map(map).sort((a, b) => (a.u < b.u ? 1 : a.u > b.u ? -1 : b.n - a.n));
+  return { preparing, ready, updated: Date.now() };
+}
+setInterval(() => {
+  broadcast('ping', { t: Date.now() });
+  for (const res of displayClients) { try { res.write(': keepalive\n\n'); } catch { /* dropped */ } }
+}, 25000).unref();
 
 // ---------------------------------------------------------------- stripe (plain REST — no SDK)
 function stripeRequest(method, apiPath, formParams, extraHeaders) {
@@ -756,6 +772,17 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { date, guests, slots, closed: Boolean(closureFor(date)) });
     }
     if (p === '/api/pickup-slots' && req.method === 'GET') return sendJson(res, 200, { days: pickupSlots(), minLeadMin: MIN_LEAD_MIN });
+
+    // public order board for the in-restaurant TV — numbers only, no personal data, no login
+    if (p === '/api/display' && req.method === 'GET') return sendJson(res, 200, displayBoard());
+    if (p === '/api/display/stream' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+      res.write('retry: 3000\n\n');
+      res.write('event: refresh\ndata: {}\n\n');
+      displayClients.add(res);
+      req.on('close', () => displayClients.delete(res));
+      return;
+    }
 
     if (p === '/api/orders' && req.method === 'POST') {
       if (rateLimited(req, RATE_MAX)) return sendJson(res, 429, { error: 'För många försök — vänta en stund.' });
