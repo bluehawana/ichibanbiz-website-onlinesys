@@ -49,12 +49,13 @@
 <script>
 (function(){
   var prep=document.getElementById('prep'), ready=document.getElementById('ready');
+  function pad(n){n=''+n;return n.length>=3?n:('000'+n).slice(-3);}
   function paint(d){
     var p=d.preparing||[], r=d.ready||[];
-    prep.innerHTML = p.map(function(o){return '<div class="chip">'+o.n+'</div>';}).join('');
+    prep.innerHTML = p.map(function(o){return '<div class="chip">'+pad(o.n)+'</div>';}).join('');
     if(r.length){
-      var hero='<div class="hero"><b>'+r[0].n+'</b></div>';
-      var rest=r.slice(1).map(function(o){return '<div class="rchip">'+o.n+'</div>';}).join('');
+      var hero='<div class="hero"><b>'+pad(r[0].n)+'</b></div>';
+      var rest=r.slice(1).map(function(o){return '<div class="rchip">'+pad(o.n)+'</div>';}).join('');
       ready.innerHTML=hero+(rest?'<div class="rest">'+rest+'</div>':'');
     } else { ready.innerHTML=''; }
   }

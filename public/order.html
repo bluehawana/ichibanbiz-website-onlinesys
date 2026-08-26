@@ -72,7 +72,7 @@
     card.innerHTML = `
       <div class="big">${o.status === 'pending_payment' ? '📲' : o.status === 'ready' ? '🍣' : o.status === 'cancelled' ? '✕' : '✔'}</div>
       <p class="kicker">${L.nr}</p>
-      <h1 style="font-size:3rem">#${o.number}</h1>
+      <h1 style="font-size:3rem">#${String(o.number).length>=3?o.number:('000'+o.number).slice(-3)}</h1>
       <span class="status-pill ${esc(o.status)}">${st[0]}</span>
       <p class="muted" style="margin-top:1rem">${st[1]}</p>
       <hr class="hairline" style="margin:1.6rem 0">

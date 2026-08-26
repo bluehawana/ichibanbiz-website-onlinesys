@@ -213,7 +213,7 @@ test('dine-in order reserves a table and links it to the order', async () => {
   assert.ok(linked, 'linked reservation exists');
   assert.equal(linked.status, 'confirmed');
   assert.equal(linked.guests, 4);
-  assert.ok(linked.note.includes('#' + o.number), 'reservation references the order');
+  assert.ok(linked.note.includes('#' + ('000' + o.number).slice(-3)), 'reservation references the order (3-digit ticket)');
 
   // cancelling the order releases the table
   await fetch(`${B}/api/admin/orders/${o.id}/status`, {
@@ -393,5 +393,5 @@ test('order numbers are 3-digit daily tickets starting at 101', async () => {
   const item = menu.categories[0].items[0];
   const r = await post('/api/orders', { name: 'Ticket Test', phone: '0700000000', items: [{ id: item.id, qty: 1 }], pickupDate: DATE, pickupTime: '12:00', lang: 'sv' });
   const o = await r.json();
-  assert.ok(o.number >= 101 && o.number <= 999, 'ticket number is 3 digits (got ' + o.number + ')');
+  assert.ok(o.number >= 1 && o.number <= 999, 'daily ticket number is 1..999 (got ' + o.number + '); UI zero-pads to 3 digits');
 });

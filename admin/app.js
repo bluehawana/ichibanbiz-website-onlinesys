@@ -5,6 +5,7 @@
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const pad3 = (n) => { const s = String(n); return s.length >= 3 ? s : ('000' + s).slice(-3); }; // 3-digit ticket
 
   // ---------------- languages: staff pick SV / EN / 中文 (remembered on this device) ----------------
   const L = {
@@ -161,7 +162,7 @@
     const dinein = o.serviceType === 'dinein';
     return `<div class="card ${o.status === 'new' ? 'new' : ''}" data-id="${esc(o.id)}" data-kind="order">
       <div class="row">
-        <span class="num">#${o.number}</span>
+        <span class="num">#${pad3(o.number)}</span>
         <span class="pickup">${esc(dinein ? t('card.dinein', { n: o.guests, t: o.pickup.time }) : t('card.pickup', { t: o.pickup.time }))}</span>
         <span class="st ${esc(o.status)}">${st}</span>
       </div>
@@ -275,7 +276,7 @@
     es.addEventListener('order', (e) => {
       const o = JSON.parse(e.data);
       ordersList.unshift(o);
-      notify(t('ntf.order', { n: o.number }), t('ntf.orderBody', { l: o.lines.length, sum: o.total, t: o.pickup.time }));
+      notify(t('ntf.order', { n: pad3(o.number) }), t('ntf.orderBody', { l: o.lines.length, sum: o.total, t: o.pickup.time }));
       render();
     });
     es.addEventListener('order-status', () => loadAll().catch(() => {}));

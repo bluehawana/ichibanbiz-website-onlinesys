@@ -106,7 +106,7 @@ function publicClosure(c) { return { id: c.id, from: c.from, to: c.to, message: 
 function nextOrderNumber() {
   const today = new Date().toISOString().slice(0, 10);
   const todays = orders.filter(o => o.createdAt.slice(0, 10) === today);
-  return 101 + todays.length;
+  return todays.length + 1; // 001, 002, ... (display is zero-padded to 3 digits)
 }
 
 // ---------------------------------------------------------------- menu (source of truth)
@@ -406,7 +406,7 @@ async function createSwishPayment(order) {
     payeeAlias: SWISH_PAYEE_ALIAS,
     amount: String(order.total),
     currency: 'SEK',
-    message: `Ichiban Sushi order #${order.number}`,
+    message: `Ichiban Sushi order #${pad3(order.number)}`,
   });
   return uuid;
 }
@@ -428,6 +428,8 @@ async function reconcileSwishOrder(o) {
 
 // ---------------------------------------------------------------- orders
 function sanitizeStr(s, max = 200) { return String(s || '').replace(/[\x00-\x1f]/g, ' ').trim().slice(0, max); }
+// zero-pad the daily ticket number to 3 digits for anything a customer sees (001..999)
+function pad3(n) { const s = String(n); return s.length >= 3 ? s : ('000' + s).slice(-3); }
 
 function createOrder(body) {
   const name = sanitizeStr(body.name, 80);
@@ -499,7 +501,7 @@ function createOrder(body) {
       lang: order.lang,
       name, phone, email, guests,
       date: pickupDate, time: pickupTime,
-      note: `🍽 Förbeställd mat — order #${order.number}`,
+      note: `🍽 Förbeställd mat — order #${pad3(order.number)}`,
     };
     reservations.push(r);
     saveJson('reservations.json', reservations);
@@ -584,7 +586,7 @@ function receiptHtml(o) {
     </div>
     <div style="padding:20px 6px">
       <p style="font-size:16px">${en ? 'Thank you for your order' : 'Tack för din beställning'}, ${esc(o.customer.name)}!</p>
-      <p><b>${en ? 'Order' : 'Beställning'} #${o.number}</b> — ${o.serviceType === 'dinein'
+      <p><b>${en ? 'Order' : 'Beställning'} #${pad3(o.number)}</b> — ${o.serviceType === 'dinein'
         ? (en ? `table for ${o.guests}, arrival` : `bord för ${o.guests}, ankomst`)
         : (en ? 'pickup' : 'avhämtning')} ${esc(o.pickup.date)} ${en ? 'at' : 'kl'} ${esc(o.pickup.time)}</p>
       ${o.serviceType === 'dinein' ? `<p style="font-size:13px;color:#666">${en ? 'Your table is reserved — the food is served shortly after you arrive.' : 'Ert bord är reserverat — maten serveras strax efter att ni kommit.'}</p>` : ''}
@@ -605,7 +607,7 @@ function sendReceipt(o) {
     const en = o.lang === 'en';
     const body = JSON.stringify({
       from: RECEIPT_FROM, to: [o.customer.email],
-      subject: en ? `Receipt — order #${o.number}, Ichiban Sushi` : `Kvitto — beställning #${o.number}, Ichiban Sushi`,
+      subject: en ? `Receipt — order #${pad3(o.number)}, Ichiban Sushi` : `Kvitto — beställning #${pad3(o.number)}, Ichiban Sushi`,
       html: receiptHtml(o),
     });
     httpsJson('api.resend.com', '/emails', { Authorization: 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }, body)
@@ -962,8 +964,8 @@ const server = http.createServer(async (req, res) => {
         if (o.status === 'cancelled') cancelLinkedReservation(o);
         if (body.status === 'ready' && SMS_ON_READY) {
           sendSms(o.customer.phone, o.lang === 'en'
-            ? `Ichiban Sushi: your order #${o.number} is ready for pickup!`
-            : `Ichiban Sushi: din beställning #${o.number} är klar att hämtas!`);
+            ? `Ichiban Sushi: your order #${pad3(o.number)} is ready for pickup!`
+            : `Ichiban Sushi: din beställning #${pad3(o.number)} är klar att hämtas!`);
         }
         return sendJson(res, 200, { ok: true });
       }
@@ -985,7 +987,7 @@ const server = http.createServer(async (req, res) => {
               payerAlias: SWISH_PAYEE_ALIAS,
               amount: String(o.total),
               currency: 'SEK',
-              message: `Återbetalning order #${o.number}`,
+              message: `Återbetalning order #${pad3(o.number)}`,
             });
             refund = { id: uuid };
           } else {
