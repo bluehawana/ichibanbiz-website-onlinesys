@@ -99,10 +99,14 @@ function upcomingClosures() {
 }
 function publicClosure(c) { return { id: c.id, from: c.from, to: c.to, message: c.message, message_en: c.message_en }; }
 
+// 3-digit daily ticket number for the pickup board (101, 102, ...). Resets each
+// day — the reset falls in the small hours (server TZ) when the restaurant is
+// closed, so no order is ever mid-flight. Numbers recycle day to day, like a
+// deli counter; the order's uuid + token stay globally unique.
 function nextOrderNumber() {
   const today = new Date().toISOString().slice(0, 10);
   const todays = orders.filter(o => o.createdAt.slice(0, 10) === today);
-  return todays.length + 1;
+  return 101 + todays.length;
 }
 
 // ---------------------------------------------------------------- menu (source of truth)

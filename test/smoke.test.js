@@ -387,3 +387,11 @@ test('public /display board: numbers only, correct buckets, newest-ready first, 
   assert.deepEqual(readyNums.slice(0, 2), [c.number, b.number], 'ready is newest-first (hero = last to become ready)');
   assert.ok(!board.preparing.concat(board.ready).some((o) => o.n === undefined), 'every entry has a number');
 });
+
+test('order numbers are 3-digit daily tickets starting at 101', async () => {
+  const menu = await (await fetch(B + '/api/menu')).json();
+  const item = menu.categories[0].items[0];
+  const r = await post('/api/orders', { name: 'Ticket Test', phone: '0700000000', items: [{ id: item.id, qty: 1 }], pickupDate: DATE, pickupTime: '12:00', lang: 'sv' });
+  const o = await r.json();
+  assert.ok(o.number >= 101 && o.number <= 999, 'ticket number is 3 digits (got ' + o.number + ')');
+});
