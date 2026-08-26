@@ -22,7 +22,7 @@
       'bk.guests': '{n} gäster', 'bk.at': '{d} kl {t}',
       'ntf.order': 'Ny beställning #{n}', 'ntf.orderBody': '{l} rader · {sum} kr · hämtas {t}', 'ntf.booking': 'Ny bordsbokning', 'ntf.bookingBody': '{n} gäster · {d} kl {t}',
       'doc.order': '🔔 NY BESTÄLLNING — Ichiban Kök', 'doc.booking': '🔔 NY BOKNING — Ichiban Kök', 'doc.idle': 'Ichiban Kök — beställningar',
-      'sound.btn': '🔔 Aktivera larmljud', 'sound.p': 'Tryck en gång så att surfplattan/telefonen får spela larm när nya beställningar kommer in. Lägg gärna till sidan på hemskärmen.',
+      'hot.kitchen': 'Varmkök', 'sound.btn': '🔔 Aktivera larmljud', 'sound.p': 'Tryck en gång så att surfplattan/telefonen får spela larm när nya beställningar kommer in. Lägg gärna till sidan på hemskärmen.',
       'h.title': 'Stäng restaurangen', 'h.desc': 'En dag eller en period. Inga beställningar eller bokningar tas emot de dagarna, och kunderna får ett meddelande på hemsidan.',
       'h.from': 'Från', 'h.to': 'Till', 'h.msg': 'Meddelande till kunderna (svenska)', 'h.msgEn': 'Message in English (optional)',
       'h.ph': 't.ex. Semesterstängt – vi ses igen den 12 augusti!', 'h.phEn': 'e.g. Closed for holidays – back on 12 August!',
@@ -42,7 +42,7 @@
       'bk.guests': '{n} guests', 'bk.at': '{d} at {t}',
       'ntf.order': 'New order #{n}', 'ntf.orderBody': '{l} lines · {sum} kr · pickup {t}', 'ntf.booking': 'New table booking', 'ntf.bookingBody': '{n} guests · {d} at {t}',
       'doc.order': '🔔 NEW ORDER — Ichiban Kitchen', 'doc.booking': '🔔 NEW BOOKING — Ichiban Kitchen', 'doc.idle': 'Ichiban Kitchen — orders',
-      'sound.btn': '🔔 Enable alarm sound', 'sound.p': 'Tap once so this tablet/phone is allowed to play the alarm when new orders come in. Add the page to the home screen.',
+      'hot.kitchen': 'Hot kitchen', 'sound.btn': '🔔 Enable alarm sound', 'sound.p': 'Tap once so this tablet/phone is allowed to play the alarm when new orders come in. Add the page to the home screen.',
       'h.title': 'Close the restaurant', 'h.desc': 'One day or a period. No orders or bookings are taken on those days, and customers see a notice on the website.',
       'h.from': 'From', 'h.to': 'To', 'h.msg': 'Message to customers (Swedish)', 'h.msgEn': 'Message in English (optional)',
       'h.ph': 'e.g. Semesterstängt – vi ses igen den 12 augusti!', 'h.phEn': 'e.g. Closed for holidays – back on 12 August!',
@@ -62,7 +62,7 @@
       'bk.guests': '{n} 人', 'bk.at': '{d} {t}',
       'ntf.order': '新订单 #{n}', 'ntf.orderBody': '{l} 项 · {sum} kr · 取餐 {t}', 'ntf.booking': '新预订', 'ntf.bookingBody': '{n} 人 · {d} {t}',
       'doc.order': '🔔 新订单 — Ichiban 厨房', 'doc.booking': '🔔 新预订 — Ichiban 厨房', 'doc.idle': 'Ichiban 厨房 — 订单',
-      'sound.btn': '🔔 开启提示音', 'sound.p': '点击一次，新订单到达时平板/手机才能播放提示音。建议把此页面添加到主屏幕。',
+      'hot.kitchen': '热厨', 'sound.btn': '🔔 开启提示音', 'sound.p': '点击一次，新订单到达时平板/手机才能播放提示音。建议把此页面添加到主屏幕。',
       'h.title': '关闭餐厅', 'h.desc': '一天或一段时间。这些日子不接受订单和预订，顾客会在网站上看到通知。',
       'h.from': '开始', 'h.to': '结束', 'h.msg': '给顾客的信息（瑞典语）', 'h.msgEn': '英文信息（可选）',
       'h.ph': '例如 Semesterstängt – vi ses igen den 12 augusti!', 'h.phEn': '例如 Closed for holidays – back on 12 August!',
@@ -168,8 +168,9 @@
       </div>
       ${dinein ? `<p class="meta" style="color:var(--gold);font-weight:600">${t('card.table')}</p>` : ''}
       <p class="meta">${esc(o.customer.name)} · <a href="tel:${esc(o.customer.phone)}">${esc(o.customer.phone)}</a> · ${t('card.received', { t: fmtTime(o.createdAt) })}</p>
+      ${(() => { const h = o.lines.filter((l) => l.hot); return h.length ? `<div class="hot-banner">🔥 ${t('hot.kitchen')}: ${h.map((l) => `${l.qty}× ${esc(dish(l))}`).join(', ')}</div>` : ''; })()}
       <div class="lines">
-        ${o.lines.map((l) => `<div><span><span class="q">${l.qty} ×</span> ${esc(dish(l))}${l.option ? ' · ' + esc(l.option) : ''}</span><span>${l.lineTotal} kr</span></div>`).join('')}
+        ${o.lines.map((l) => `<div class="${l.hot ? 'line-hot' : ''}"><span>${l.hot ? '🔥 ' : ''}<span class="q">${l.qty} ×</span> ${esc(dish(l))}${l.option ? ' · ' + esc(l.option) : ''}</span><span>${l.lineTotal} kr</span></div>`).join('')}
       </div>
       ${o.note ? `<div class="note">✎ ${esc(o.note)}</div>` : ''}
       <div class="total"><span>${o.paid ? `<span class="paid">${t('card.paid')}</span>` : `<span class="unpaid">${t('card.unpaid')}</span>`}</span><span>${o.total} kr</span></div>

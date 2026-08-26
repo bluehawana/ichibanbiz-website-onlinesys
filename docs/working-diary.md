@@ -293,3 +293,33 @@ board): light grey background, grey Tillagas/Hämta labels, dark charcoal chips
 for preparing, Max-green ready cells with the just-ready number as a big hero,
 vertical divider, numbers only — no logo/clock/footer chrome, no times, no
 dine-in marks. Same live feed underneath. Verified at 1920×1080.
+
+## 2026-08-26 — 3-digit tickets, review placement, hot-kitchen highlight, big QA pass
+
+**Order tickets 001–999.** Owner: a few hundred orders/day, wants 001–999.
+Daily counter starts at 001, zero-padded to 3 digits on every surface (board,
+kitchen card, confirmation page, receipt email, ready-SMS, Swish message,
+dine-in note) with an old-TV-browser-safe pad.
+
+**Home tweaks.** Google review section moved to the very bottom (just above the
+footer) so it reads as "if you enjoyed it", not a plea. Find-us heading "Right
+between Liseberg and World of Volvo" → "Close to Liseberg and World of Volvo"
+with a "really good sushi" line (owner: we're near them, not between).
+
+**Hot-kitchen highlight (one screen, two stations).** Owner runs a sushi bar +
+a hot kitchen and didn't want two iPads. Tagged 35 of 111 menu items `hot`
+(fried/grilled/cooked: Varmrätter + Egen kombo categories, plus anything
+friterad/stekt/krispig/dynamite/yakitori/yakiniku/bibimbap/vårrull). Order lines
+now carry the flag; the kitchen card shows a 🔥 Varmkök banner listing the hot
+items and highlights those lines orange, so one cook calls them straight to the
+hot station. Tri-lingual label (Varmkök / Hot kitchen / 热厨). Owner can retune
+the tagging in menu.json.
+
+**QA pass.** Full functional+load harness 30/30 on an isolated VPS instance
+(5,000 GETs p95 179ms; 500 concurrent orders unique & accepted, 166/s; booking
+race respects capacity; 30 live kitchen screens; RSS 3.4MB). Live demo: full
+customer phone journey exercised (browse → cart → checkout form → order →
+confirmation #001 → live on the TV board), Stripe checkout + webhook verified
+(200, expiry cancels). 20 smoke tests pass. Note: on a short desktop viewport a
+very large cart pushes the Place-order button low (mobile uses a bottom sheet,
+fine).

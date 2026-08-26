@@ -395,3 +395,21 @@ test('order numbers are 3-digit daily tickets starting at 101', async () => {
   const o = await r.json();
   assert.ok(o.number >= 1 && o.number <= 999, 'daily ticket number is 1..999 (got ' + o.number + '); UI zero-pads to 3 digits');
 });
+
+test('order lines carry the hot-kitchen flag (fried/grilled dishes flagged, sushi not)', async () => {
+  const login = await post('/api/admin/login', { pin: '9999' });
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  const menu = await (await fetch(B + '/api/menu')).json();
+  const items = menu.categories.flatMap((c) => c.items);
+  const hot = items.find((i) => i.hot);            // e.g. yakitori / ebi-fry
+  const cold = items.find((i) => !i.hot && i.price > 0); // e.g. a nigiri
+  assert.ok(hot && cold, 'menu has both hot and cold items');
+  const r = await post('/api/orders', { name: 'Hot Test', phone: '0700000000', items: [{ id: hot.id, qty: 1 }, { id: cold.id, qty: 2 }], pickupDate: DATE, pickupTime: '12:00', lang: 'sv' });
+  const o = await r.json();
+  const list = (await (await fetch(B + '/api/admin/orders', { headers: { cookie } })).json()).orders;
+  const mine = list.find((x) => x.id === o.id);
+  const hotLine = mine.lines.find((l) => l.id === hot.id);
+  const coldLine = mine.lines.find((l) => l.id === cold.id);
+  assert.equal(hotLine.hot, true, 'fried/grilled dish is flagged hot');
+  assert.ok(!coldLine.hot, 'sushi/cold dish is not flagged hot');
+});

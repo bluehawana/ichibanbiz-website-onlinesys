@@ -462,7 +462,7 @@ function createOrder(body) {
     if (!it || !qty) throw new Error('Okänd rätt i varukorgen.');
     let option = null;
     if (it.options && raw.option && it.options.choices.includes(String(raw.option))) option = String(raw.option);
-    lines.push({ id: it.id, name: it.name, name_en: it.name_en || '', qty, unitPrice: it.price, option, lineTotal: it.price * qty }); // name_en: kitchen staff can read the order in English
+    lines.push({ id: it.id, name: it.name, name_en: it.name_en || '', hot: !!it.hot, qty, unitPrice: it.price, option, lineTotal: it.price * qty }); // name_en + hot: kitchen reads it in English and sees which lines go to the hot kitchen
     total += it.price * qty;
   }
 

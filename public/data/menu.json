@@ -53,7 +53,8 @@
           ],
           "img": "mini-varrullar.jpg",
           "name_en": "Mini spring rolls",
-          "desc_en": "8 vegetarian spring rolls with sweet chili sauce"
+          "desc_en": "8 vegetarian spring rolls with sweet chili sauce",
+          "hot": true
         },
         {
           "id": "ebi-fry",
@@ -63,7 +64,8 @@
           "tags": [],
           "img": "ebi-fry.jpg",
           "star": true,
-          "desc_en": "4 deep-fried shrimp with sweet chili sauce"
+          "desc_en": "4 deep-fried shrimp with sweet chili sauce",
+          "hot": true
         },
         {
           "id": "gyoza",
@@ -73,7 +75,8 @@
           "tags": [],
           "img": "gyoza.jpg",
           "name_en": "Crispy gyoza dumplings",
-          "desc_en": "4 fried chicken dumplings with sweet chili sauce"
+          "desc_en": "4 fried chicken dumplings with sweet chili sauce",
+          "hot": true
         },
         {
           "id": "golden-chicken",
@@ -82,7 +85,8 @@
           "price": 79,
           "tags": [],
           "img": "golden-chicken.jpg",
-          "desc_en": "Fried chicken pops with sweet chili sauce"
+          "desc_en": "Fried chicken pops with sweet chili sauce",
+          "hot": true
         },
         {
           "id": "lax-sallad",
@@ -101,7 +105,8 @@
           "price": 99,
           "tags": [],
           "img": "fry-mix.jpg",
-          "desc_en": "2 fried shrimp, 2 fried dumplings and 4 fried spring rolls, served with sweet chili sauce and chili mayo"
+          "desc_en": "2 fried shrimp, 2 fried dumplings and 4 fried spring rolls, served with sweet chili sauce and chili mayo",
+          "hot": true
         }
       ],
       "name_en": "Starters"
@@ -159,7 +164,8 @@
           "tags": [],
           "img": "familje-40.jpg",
           "name_en": "Family sushi, 40 pieces",
-          "desc_en": "Nigiri: 4 salmon, 4 flamed salmon, 2 tuna, 2 tilapia, 4 shrimp, 4 avocado · Rolls: 10 crispy ebi roll, 10 dragon roll"
+          "desc_en": "Nigiri: 4 salmon, 4 flamed salmon, 2 tuna, 2 tilapia, 4 shrimp, 4 avocado · Rolls: 10 crispy ebi roll, 10 dragon roll",
+          "hot": true
         }
       ],
       "name_en": "Sushi combo",
@@ -264,7 +270,8 @@
           "img": "kyckling-poke.jpg",
           "star": true,
           "name_en": "Chicken poké",
-          "desc_en": "Fried chicken, avocado, mango, cucumber, edamame beans, seaweed salad, pickled red onion, sushi rice, topped with chili mayo and sesame seeds"
+          "desc_en": "Fried chicken, avocado, mango, cucumber, edamame beans, seaweed salad, pickled red onion, sushi rice, topped with chili mayo and sesame seeds",
+          "hot": true
         },
         {
           "id": "krispig-ebi-poke",
@@ -274,7 +281,8 @@
           "tags": [],
           "img": "krispig-ebi-poke.jpg",
           "name_en": "Crispy ebi poké",
-          "desc_en": "Fried shrimp (4 pcs), avocado, mango, cucumber, edamame beans, seaweed salad, pickled red onion, sushi rice, topped with chili mayo and sesame seeds"
+          "desc_en": "Fried shrimp (4 pcs), avocado, mango, cucumber, edamame beans, seaweed salad, pickled red onion, sushi rice, topped with chili mayo and sesame seeds",
+          "hot": true
         }
       ],
       "name_en": "Poké bowls"
@@ -290,7 +298,8 @@
           "price": 129,
           "tags": [],
           "img": "yakitori.jpg",
-          "desc_en": "Chicken skewers with teriyaki sauce, served with rice and salad"
+          "desc_en": "Chicken skewers with teriyaki sauce, served with rice and salad",
+          "hot": true
         },
         {
           "id": "yakiniku",
@@ -299,7 +308,8 @@
           "price": 135,
           "tags": [],
           "img": "yakiniku.jpg",
-          "desc_en": "Thinly sliced beef with teriyaki sauce, served with rice and salad"
+          "desc_en": "Thinly sliced beef with teriyaki sauce, served with rice and salad",
+          "hot": true
         },
         {
           "id": "kyckling-dumplings",
@@ -309,7 +319,8 @@
           "tags": [],
           "img": "kyckling-dumplings.jpg",
           "name_en": "Chicken dumplings",
-          "desc_en": "10 fried chicken dumplings, served with rice, sweet chili sauce and salad"
+          "desc_en": "10 fried chicken dumplings, served with rice, sweet chili sauce and salad",
+          "hot": true
         },
         {
           "id": "veg-dumplings",
@@ -321,7 +332,8 @@
           ],
           "img": "veg-dumplings.jpg",
           "name_en": "Vegetarian dumplings",
-          "desc_en": "10 fried vegetarian dumplings, served with rice, sweet chili sauce and salad"
+          "desc_en": "10 fried vegetarian dumplings, served with rice, sweet chili sauce and salad",
+          "hot": true
         },
         {
           "id": "bibimbap",
@@ -332,7 +344,8 @@
             "stark"
           ],
           "img": "bibimbap.jpg",
-          "desc_en": "Rice with sautéed beef, fried egg, kimchi, cucumber, carrot, red pepper, red cabbage and bibimbap sauce"
+          "desc_en": "Rice with sautéed beef, fried egg, kimchi, cucumber, carrot, red pepper, red cabbage and bibimbap sauce",
+          "hot": true
         },
         {
           "id": "veg-bibimbap",
@@ -345,7 +358,8 @@
           ],
           "img": "veg-bibimbap.jpg",
           "name_en": "Vegetarian bibimbap",
-          "desc_en": "Rice with sautéed tofu, fried egg, kimchi, cucumber, carrot, red pepper, red cabbage and bibimbap sauce"
+          "desc_en": "Rice with sautéed tofu, fried egg, kimchi, cucumber, carrot, red pepper, red cabbage and bibimbap sauce",
+          "hot": true
         }
       ],
       "name_en": "Hot dishes"
@@ -362,7 +376,8 @@
           "price": 139,
           "tags": [],
           "img": "egen-kombo.jpg",
-          "name_en": "Yakiniku with yakitori"
+          "name_en": "Yakiniku with yakitori",
+          "hot": true
         },
         {
           "id": "kombo-yakiniku-sushi",
@@ -371,7 +386,8 @@
           "price": 139,
           "tags": [],
           "img": "egen-kombo.jpg",
-          "name_en": "Yakiniku with sushi"
+          "name_en": "Yakiniku with sushi",
+          "hot": true
         },
         {
           "id": "kombo-yakitori-sushi",
@@ -380,7 +396,8 @@
           "price": 139,
           "tags": [],
           "img": "egen-kombo.jpg",
-          "name_en": "Yakitori with sushi"
+          "name_en": "Yakitori with sushi",
+          "hot": true
         },
         {
           "id": "kombo-dumplings-sushi",
@@ -389,7 +406,8 @@
           "price": 139,
           "tags": [],
           "img": "egen-kombo.jpg",
-          "name_en": "Chicken dumplings with sushi"
+          "name_en": "Chicken dumplings with sushi",
+          "hot": true
         },
         {
           "id": "kombo-dumplings-yakiniku",
@@ -398,7 +416,8 @@
           "price": 139,
           "tags": [],
           "img": "egen-kombo.jpg",
-          "name_en": "Chicken dumplings with yakiniku"
+          "name_en": "Chicken dumplings with yakiniku",
+          "hot": true
         },
         {
           "id": "kombo-dumplings-yakitori",
@@ -407,7 +426,8 @@
           "price": 139,
           "tags": [],
           "img": "egen-kombo.jpg",
-          "name_en": "Chicken dumplings with yakitori"
+          "name_en": "Chicken dumplings with yakitori",
+          "hot": true
         },
         {
           "id": "kombo-veg-dumplings-sushi",
@@ -418,7 +438,8 @@
             "vegetarisk"
           ],
           "img": "egen-kombo.jpg",
-          "name_en": "Vegetarian dumplings with sushi"
+          "name_en": "Vegetarian dumplings with sushi",
+          "hot": true
         }
       ],
       "name_en": "Build your own combo",
@@ -750,7 +771,8 @@
           "tags": [],
           "img": "krispig-ebi-roll.jpg",
           "name_en": "Crispy ebi",
-          "desc_en": "Fried shrimp, avocado, Japanese teriyaki sauce, topped with chili mayo and kimchi sesame"
+          "desc_en": "Fried shrimp, avocado, Japanese teriyaki sauce, topped with chili mayo and kimchi sesame",
+          "hot": true
         },
         {
           "id": "krispig-kyckling-roll",
@@ -760,7 +782,8 @@
           "tags": [],
           "img": "krispig-kyckling-roll.jpg",
           "name_en": "Crispy chicken",
-          "desc_en": "Fried chicken, cucumber, salad, Japanese teriyaki sauce, topped with chili mayo and kimchi sesame seeds"
+          "desc_en": "Fried chicken, cucumber, salad, Japanese teriyaki sauce, topped with chili mayo and kimchi sesame seeds",
+          "hot": true
         }
       ],
       "name_en": "Uramaki",
@@ -808,7 +831,8 @@
           "price": 149,
           "tags": [],
           "img": "nemo-roll.jpg",
-          "desc_en": "Fried shrimp, avocado, cucumber, teriyaki sauce, topped with chili mayo, kimchi sesame seeds and seaweed caviar"
+          "desc_en": "Fried shrimp, avocado, cucumber, teriyaki sauce, topped with chili mayo, kimchi sesame seeds and seaweed caviar",
+          "hot": true
         },
         {
           "id": "alaska-roll",
@@ -829,7 +853,8 @@
           "tags": [],
           "img": "super-krispig-kyckling.jpg",
           "name_en": "Super crispy chicken",
-          "desc_en": "Fried chicken, cucumber, salad, teriyaki sauce, topped with avocado and kimchi sesame seeds"
+          "desc_en": "Fried chicken, cucumber, salad, teriyaki sauce, topped with avocado and kimchi sesame seeds",
+          "hot": true
         },
         {
           "id": "orange-krispig-ebi",
@@ -839,7 +864,8 @@
           "tags": [],
           "img": "orange-krispig-ebi.jpg",
           "name_en": "Orange crispy ebi",
-          "desc_en": "Fried shrimp, avocado, teriyaki sauce, topped with salmon and kimchi sesame seeds"
+          "desc_en": "Fried shrimp, avocado, teriyaki sauce, topped with salmon and kimchi sesame seeds",
+          "hot": true
         },
         {
           "id": "green-krispig-ebi",
@@ -849,7 +875,8 @@
           "tags": [],
           "img": "green-krispig-ebi.jpg",
           "name_en": "Green crispy ebi",
-          "desc_en": "Fried shrimp, avocado, teriyaki sauce, topped with avocado and kimchi sesame seeds"
+          "desc_en": "Fried shrimp, avocado, teriyaki sauce, topped with avocado and kimchi sesame seeds",
+          "hot": true
         },
         {
           "id": "sunshine-roll",
@@ -879,7 +906,8 @@
           "price": 169,
           "tags": [],
           "img": "tiger-roll.jpg",
-          "desc_en": "Fried shrimp, avocado, topped with flamed salmon, teriyaki sauce, chili mayo and kimchi sesame seeds"
+          "desc_en": "Fried shrimp, avocado, topped with flamed salmon, teriyaki sauce, chili mayo and kimchi sesame seeds",
+          "hot": true
         }
       ],
       "name_en": "Deluxe rolls",
@@ -898,7 +926,8 @@
           "tags": [],
           "img": "dynamite-lax.jpg",
           "name_en": "Dynamite salmon roll",
-          "desc_en": "Fried rolls with salmon, cucumber, chili mayo, teriyaki sauce and kimchi sesame"
+          "desc_en": "Fried rolls with salmon, cucumber, chili mayo, teriyaki sauce and kimchi sesame",
+          "hot": true
         },
         {
           "id": "dynamite-kyckling",
@@ -908,7 +937,8 @@
           "tags": [],
           "img": "dynamite-kyckling.jpg",
           "name_en": "Dynamite chicken roll",
-          "desc_en": "Fried rolls with crispy chicken, cheddar, cucumber, topped with chili mayo, teriyaki sauce and kimchi sesame"
+          "desc_en": "Fried rolls with crispy chicken, cheddar, cucumber, topped with chili mayo, teriyaki sauce and kimchi sesame",
+          "hot": true
         },
         {
           "id": "dynamite-biff",
@@ -918,7 +948,8 @@
           "tags": [],
           "img": "dynamite-biff.jpg",
           "name_en": "Dynamite beef roll",
-          "desc_en": "Fried rolls with beef, cheddar, cucumber, topped with chili mayo, teriyaki sauce and kimchi sesame"
+          "desc_en": "Fried rolls with beef, cheddar, cucumber, topped with chili mayo, teriyaki sauce and kimchi sesame",
+          "hot": true
         }
       ],
       "name_en": "Dynamite rolls",
@@ -947,7 +978,8 @@
           "tags": [],
           "img": "rispapper-kyckling.jpg",
           "name_en": "Rice paper chicken roll",
-          "desc_en": "Salad, rice paper, fried chicken, avocado, cucumber, teriyaki sauce, kimchi sesame"
+          "desc_en": "Salad, rice paper, fried chicken, avocado, cucumber, teriyaki sauce, kimchi sesame",
+          "hot": true
         },
         {
           "id": "rispapper-rakor",
@@ -957,7 +989,8 @@
           "tags": [],
           "img": "rispapper-rakor.jpg",
           "name_en": "Rice paper shrimp roll",
-          "desc_en": "Salad, rice paper, fried shrimp, avocado, cucumber, teriyaki sauce, kimchi sesame"
+          "desc_en": "Salad, rice paper, fried shrimp, avocado, cucumber, teriyaki sauce, kimchi sesame",
+          "hot": true
         }
       ],
       "name_en": "Rice paper rolls",
@@ -1064,7 +1097,8 @@
           "tags": [],
           "img": "hoso-krispig-ebi.jpg",
           "name_en": "Hoso crispy ebi",
-          "desc_en": "8 hosomaki with fried shrimp"
+          "desc_en": "8 hosomaki with fried shrimp",
+          "hot": true
         }
       ],
       "name_en": "Hosomaki",
@@ -1110,7 +1144,8 @@
           "img": "fest-meny.jpg",
           "leadTimeMin": 120,
           "name_en": "Party platter (85 pieces)",
-          "desc_en": "Order at least 2 hours in advance. 85 pcs: 5 salmon, 2 tuna, 2 white fish, 4 shrimp, 4 flamed salmon, 4 avocado, 4 tofu, tiger roll (10), orange crispy ebi (10), classic salmon maki (10), veggie roll (10), spicy salmon roll (10), dragon roll (10)"
+          "desc_en": "Order at least 2 hours in advance. 85 pcs: 5 salmon, 2 tuna, 2 white fish, 4 shrimp, 4 flamed salmon, 4 avocado, 4 tofu, tiger roll (10), orange crispy ebi (10), classic salmon maki (10), veggie roll (10), spicy salmon roll (10), dragon roll (10)",
+          "hot": true
         }
       ],
       "name_en": "Party platter"
