@@ -221,12 +221,17 @@ function validPickup(dateStr, timeStr) {
 // ---------------------------------------------------------------- SSE for admin
 const sseClients = new Set();
 const displayClients = new Set(); // public order board (/display) — no auth, no personal data
+const orderStreams = new Map(); // orderId -> Set(res): the customer's own status page, live
 function broadcast(event, data) {
   const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
   for (const res of sseClients) { try { res.write(msg); } catch { /* dropped */ } }
   // the public pickup board only needs to know *something* changed, then it re-fetches /api/display
   if (event === 'order' || event === 'order-status') {
     for (const res of displayClients) { try { res.write('event: refresh\ndata: {}\n\n'); } catch { /* dropped */ } }
+  }
+  // push a live nudge to the customer watching their own order page
+  if (data && data.id && orderStreams.has(data.id)) {
+    for (const res of orderStreams.get(data.id)) { try { res.write('event: update\ndata: {}\n\n'); } catch { /* dropped */ } }
   }
 }
 // The board shows numbers + pickup time only — never names, phones or dishes.
@@ -240,6 +245,7 @@ function displayBoard() {
 setInterval(() => {
   broadcast('ping', { t: Date.now() });
   for (const res of displayClients) { try { res.write(': keepalive\n\n'); } catch { /* dropped */ } }
+  for (const set of orderStreams.values()) for (const res of set) { try { res.write(': keepalive\n\n'); } catch { /* dropped */ } }
 }, 25000).unref();
 
 // ---------------------------------------------------------------- stripe (plain REST — no SDK)
@@ -430,6 +436,8 @@ async function reconcileSwishOrder(o) {
 function sanitizeStr(s, max = 200) { return String(s || '').replace(/[\x00-\x1f]/g, ' ').trim().slice(0, max); }
 // zero-pad the daily ticket number to 3 digits for anything a customer sees (001..999)
 function pad3(n) { const s = String(n); return s.length >= 3 ? s : ('000' + s).slice(-3); }
+// order activity log — a Wix-style timeline of what happened and when
+function logEvent(o, ev) { (o.events = o.events || []).push({ ev, t: new Date().toISOString() }); }
 
 function createOrder(body) {
   const name = sanitizeStr(body.name, 80);
@@ -486,6 +494,7 @@ function createOrder(body) {
     pickup: { date: pickupDate, time: pickupTime },
     lines,
     total,
+    events: [{ ev: (wantsOnline || wantsSwish) ? 'awaiting_payment' : 'created', t: new Date().toISOString() }],
   };
   orders.push(order);
   saveJson('orders.json', orders);
@@ -536,6 +545,7 @@ function markOrderPaid(orderId, paymentIntent, swishRef) {
   if (paymentIntent) o.paymentIntent = paymentIntent; // needed for refunds (stripe)
   if (swishRef) o.swishPaymentRef = swishRef;         // needed for refunds (swish)
   if (o.status === 'pending_payment') o.status = 'new';
+  logEvent(o, 'paid');
   o.updatedAt = new Date().toISOString();
   saveJson('orders.json', orders);
   broadcast('order', publicAdminOrder(o)); // now the kitchen alarm rings
@@ -544,7 +554,7 @@ function markOrderPaid(orderId, paymentIntent, swishRef) {
 }
 
 function publicAdminOrder(o) {
-  return { id: o.id, number: o.number, createdAt: o.createdAt, status: o.status, paid: o.paid, refunded: !!o.refunded, canRefund: !!(o.paid && (o.paymentIntent || o.swishPaymentRef) && !o.refunded), paymentMethod: o.paymentMethod, serviceType: o.serviceType || 'pickup', guests: o.guests || 0, customer: o.customer, note: o.note, pickup: o.pickup, lines: o.lines, total: o.total };
+  return { id: o.id, number: o.number, createdAt: o.createdAt, updatedAt: o.updatedAt || o.createdAt, status: o.status, paid: o.paid, refunded: !!o.refunded, canRefund: !!(o.paid && (o.paymentIntent || o.swishPaymentRef) && !o.refunded), paymentMethod: o.paymentMethod, paymentRef: o.paymentIntent || o.swishPaymentRef || '', serviceType: o.serviceType || 'pickup', guests: o.guests || 0, lang: o.lang || 'sv', customer: o.customer, note: o.note, pickup: o.pickup, lines: o.lines, total: o.total, events: o.events || [] };
 }
 function publicCustomerOrder(o) {
   return { number: o.number, status: o.status, paid: o.paid, refunded: !!o.refunded, paymentMethod: o.paymentMethod, serviceType: o.serviceType || 'pickup', guests: o.guests || 0, pickup: o.pickup, lines: o.lines, total: o.total, createdAt: o.createdAt };
@@ -869,6 +879,18 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { received: true });
     }
 
+    // live status stream for the customer's own order page (token-authenticated)
+    const mOrderStream = p.match(/^\/api\/orders\/([a-f0-9-]+)\/stream$/);
+    if (mOrderStream && req.method === 'GET') {
+      const o = orders.find(x => x.id === mOrderStream[1]);
+      if (!o || url.searchParams.get('token') !== o.token) return sendJson(res, 404, { error: 'not found' });
+      res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+      res.write('retry: 4000\n\n');
+      if (!orderStreams.has(o.id)) orderStreams.set(o.id, new Set());
+      orderStreams.get(o.id).add(res);
+      req.on('close', () => { const set = orderStreams.get(o.id); if (set) { set.delete(res); if (!set.size) orderStreams.delete(o.id); } });
+      return;
+    }
     const mOrder = p.match(/^\/api\/orders\/([a-f0-9-]+)$/);
     if (mOrder && req.method === 'GET') {
       const o = orders.find(x => x.id === mOrder[1]);
@@ -951,6 +973,22 @@ const server = http.createServer(async (req, res) => {
           .map(publicAdminOrder).reverse();
         return sendJson(res, 200, { orders: recent });
       }
+      // full order history with search + filter + paging (back-office view)
+      if (p === '/api/admin/orders/all' && req.method === 'GET') {
+        const q = sanitizeStr(url.searchParams.get('q'), 60).toLowerCase();
+        const status = sanitizeStr(url.searchParams.get('status'), 20);
+        const limit = Math.max(1, Math.min(100, parseInt(url.searchParams.get('limit'), 10) || 40));
+        const offset = Math.max(0, parseInt(url.searchParams.get('offset'), 10) || 0);
+        let list = orders.filter(o => o.status !== 'pending_payment');
+        if (status) list = list.filter(o => (status === 'paid' ? o.paid : o.status === status));
+        if (q) list = list.filter(o => {
+          const c = o.customer || {};
+          return pad3(o.number).includes(q) || String(o.number).includes(q)
+            || (c.name || '').toLowerCase().includes(q) || (c.phone || '').includes(q) || (c.email || '').toLowerCase().includes(q);
+        });
+        list = list.slice().reverse(); // newest first
+        return sendJson(res, 200, { total: list.length, orders: list.slice(offset, offset + limit).map(publicAdminOrder) });
+      }
       const mStatus = p.match(/^\/api\/admin\/orders\/([a-f0-9-]+)\/status$/);
       if (mStatus && req.method === 'POST') {
         const body = await readJsonBody(req);
@@ -958,6 +996,7 @@ const server = http.createServer(async (req, res) => {
         const allowed = ['new', 'accepted', 'ready', 'done', 'cancelled'];
         if (!o || !allowed.includes(body.status)) return sendJson(res, 400, { error: 'bad request' });
         o.status = body.status;
+        logEvent(o, body.status);
         o.updatedAt = new Date().toISOString();
         saveJson('orders.json', orders);
         broadcast('order-status', { id: o.id, status: o.status });
@@ -1000,6 +1039,8 @@ const server = http.createServer(async (req, res) => {
           saveJson('orders.json', orders);
           broadcast('order-status', { id: o.id, status: o.status });
           cancelLinkedReservation(o);
+          logEvent(o, 'refunded'); saveJson('orders.json', orders);
+          broadcast('order-status', { id: o.id, status: o.status }); // updates the kitchen list and the customer page
           console.log(`REFUND #${o.number} — ${o.total} kr (${refund.id})`);
           return sendJson(res, 200, { ok: true, refundId: refund.id });
         } catch (e) {

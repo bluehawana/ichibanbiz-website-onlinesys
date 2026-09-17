@@ -100,7 +100,12 @@
   if (!id || !token) { card.innerHTML = '<p class="muted">Ogiltig länk. <a href="/bestall" style="color:var(--aka-ink)">Till beställningen</a></p>'; return; }
   fetch('/api/config').then((r) => r.json()).then((cfg) => { window.__reviewUrl = cfg.reviewUrl; load(); }).catch(load);
   let fast = setInterval(() => { if (window.__pending) load(); }, 4000);   // while approving in Swish
-  setInterval(load, 20000);
+  setInterval(load, 20000);                                                // safety poll
+  // live push: reflect accept -> ready -> done the instant the kitchen acts
+  try {
+    const es = new EventSource(`/api/orders/${encodeURIComponent(id)}/stream?token=${encodeURIComponent(token)}`);
+    es.addEventListener('update', load);
+  } catch (e) {}
 })();
 </script>
 </body>

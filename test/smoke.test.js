@@ -52,6 +52,7 @@ function nextFullDay() {
   }
 }
 const DATE = nextFullDay();
+let PICK = { date: DATE, time: '12:00' }; // a real, currently-orderable pickup slot (set in before())
 
 async function waitForServer(tries = 50) {
   for (let i = 0; i < tries; i++) {
@@ -84,6 +85,11 @@ before(async () => {
   });
   await new Promise((r) => swishMock.listen(MOCK_SWISH_PORT, r));
   await waitForServer();
+  // pickup orders are only valid within the 2-day window — grab a real slot so tests
+  // don't break depending on the weekday.
+  const ps = await (await fetch(B + '/api/pickup-slots')).json();
+  const day = ps.days[ps.days.length - 1];
+  PICK = { date: day.date, time: day.slots[Math.floor(day.slots.length / 3)] };
 });
 
 after(() => {
@@ -120,7 +126,7 @@ test('menu is valid and non-empty', async () => {
 // ---------------------------------------------------------------- orders
 test('order validation rejects bad input', async () => {
   assert.equal((await post('/api/orders', { name: 'X', phone: '1', items: [] })).status, 400);
-  assert.equal((await post('/api/orders', { name: 'Test', phone: '0701234567', items: [{ id: 'nope', qty: 1 }], pickupDate: DATE, pickupTime: '12:00' })).status, 400);
+  assert.equal((await post('/api/orders', { name: 'Test', phone: '0701234567', items: [{ id: 'nope', qty: 1 }], pickupDate: PICK.date, pickupTime: PICK.time })).status, 400);
   assert.equal((await post('/api/orders', { name: 'Test', phone: '0701234567', items: [{ id: 'edamame', qty: 1 }], pickupDate: DATE, pickupTime: '03:00' })).status, 400);
 });
 
@@ -128,7 +134,7 @@ let orderRef;
 test('order lifecycle: create -> status -> admin accept -> customer sees it', async () => {
   const menu = await (await fetch(B + '/api/menu')).json();
   const item = menu.categories[0].items[0];
-  const r = await post('/api/orders', { name: 'CI Kund', phone: '0701234567', items: [{ id: item.id, qty: 2 }], pickupDate: DATE, pickupTime: '12:00', lang: 'sv' });
+  const r = await post('/api/orders', { name: 'CI Kund', phone: '0701234567', items: [{ id: item.id, qty: 2 }], pickupDate: PICK.date, pickupTime: PICK.time, lang: 'sv' });
   assert.equal(r.status, 201);
   orderRef = await r.json();
   assert.equal(orderRef.total, item.price * 2, 'server-side pricing');
@@ -195,7 +201,7 @@ test('dine-in order reserves a table and links it to the order', async () => {
   const item = menu.categories[0].items[0];
   const r = await post('/api/orders', {
     name: 'Dinein CI', phone: '0705550001', items: [{ id: item.id, qty: 1 }],
-    pickupDate: DATE, pickupTime: '13:00', serviceType: 'dinein', guests: 4, lang: 'sv',
+    pickupDate: PICK.date, pickupTime: PICK.time, serviceType: 'dinein', guests: 4, lang: 'sv',
   });
   assert.equal(r.status, 201);
   const o = await r.json();
@@ -243,10 +249,10 @@ test('swish: payment request -> approve in app -> kitchen sees paid order', asyn
   assert.equal(cfg.swish, true, 'swish advertised to the client');
 
   // invalid swedish mobile is rejected up front
-  const bad = await post('/api/orders', { name: 'Swish Fel', phone: '12345678', items: [{ id: item.id, qty: 1 }], pickupDate: DATE, pickupTime: '14:00', paymentMethod: 'swish' });
+  const bad = await post('/api/orders', { name: 'Swish Fel', phone: '12345678', items: [{ id: item.id, qty: 1 }], pickupDate: PICK.date, pickupTime: PICK.time, paymentMethod: 'swish' });
   assert.equal(bad.status, 400);
 
-  const r = await post('/api/orders', { name: 'Swish CI', phone: '070-123 45 67', items: [{ id: item.id, qty: 1 }], pickupDate: DATE, pickupTime: '14:00', paymentMethod: 'swish' });
+  const r = await post('/api/orders', { name: 'Swish CI', phone: '070-123 45 67', items: [{ id: item.id, qty: 1 }], pickupDate: PICK.date, pickupTime: PICK.time, paymentMethod: 'swish' });
   assert.equal(r.status, 201);
   const o = await r.json();
   assert.equal(o.swishPending, true);
@@ -276,7 +282,7 @@ test('swish: payment request -> approve in app -> kitchen sees paid order', asyn
 test('swish callback wakes reconciliation', async () => {
   const menu = await (await fetch(B + '/api/menu')).json();
   const item = menu.categories[0].items[0];
-  const o = await (await post('/api/orders', { name: 'Swish CB', phone: '0709876543', items: [{ id: item.id, qty: 1 }], pickupDate: DATE, pickupTime: '15:00', paymentMethod: 'swish' })).json();
+  const o = await (await post('/api/orders', { name: 'Swish CB', phone: '0709876543', items: [{ id: item.id, qty: 1 }], pickupDate: PICK.date, pickupTime: PICK.time, paymentMethod: 'swish' })).json();
   const uuid = [...swishState.keys()].pop();
   swishState.get(uuid).status = 'PAID';
   await post('/api/swish/callback', { id: uuid, status: 'PAID' });
@@ -287,7 +293,7 @@ test('swish callback wakes reconciliation', async () => {
 test('declined swish releases a dine-in table', async () => {
   const menu = await (await fetch(B + '/api/menu')).json();
   const item = menu.categories[0].items[0];
-  const o = await (await post('/api/orders', { name: 'Swish Nej', phone: '0701112222', items: [{ id: item.id, qty: 1 }], pickupDate: DATE, pickupTime: '12:30', paymentMethod: 'swish', serviceType: 'dinein', guests: 2 })).json();
+  const o = await (await post('/api/orders', { name: 'Swish Nej', phone: '0701112222', items: [{ id: item.id, qty: 1 }], pickupDate: PICK.date, pickupTime: PICK.time, paymentMethod: 'swish', serviceType: 'dinein', guests: 2 })).json();
   const uuid = [...swishState.keys()].pop();
   swishState.get(uuid).status = 'DECLINED';
   const st = await (await fetch(`${B}/api/orders/${o.id}?token=${o.token}`)).json();
@@ -368,7 +374,7 @@ test('public /display board: numbers only, correct buckets, newest-ready first, 
   const cookie = login.headers.get('set-cookie').split(';')[0];
   const menu = await (await fetch(B + '/api/menu')).json();
   const item = menu.categories[0].items[0];
-  const day = nextFullDay();
+  const day = PICK.date;
   const slots = (await (await fetch(`${B}/api/pickup-slots`)).json()).days.find((d) => d.date === day).slots;
   async function order(time) {
     const r = await post('/api/orders', { name: 'Board Tester', phone: '0700000000', pickupDate: day, pickupTime: time, items: [{ id: item.id, qty: 1 }], serviceType: 'pickup', paymentMethod: 'pickup', lang: 'sv' });
@@ -391,7 +397,7 @@ test('public /display board: numbers only, correct buckets, newest-ready first, 
 test('order numbers are 3-digit daily tickets starting at 101', async () => {
   const menu = await (await fetch(B + '/api/menu')).json();
   const item = menu.categories[0].items[0];
-  const r = await post('/api/orders', { name: 'Ticket Test', phone: '0700000000', items: [{ id: item.id, qty: 1 }], pickupDate: DATE, pickupTime: '12:00', lang: 'sv' });
+  const r = await post('/api/orders', { name: 'Ticket Test', phone: '0700000000', items: [{ id: item.id, qty: 1 }], pickupDate: PICK.date, pickupTime: PICK.time, lang: 'sv' });
   const o = await r.json();
   assert.ok(o.number >= 1 && o.number <= 999, 'daily ticket number is 1..999 (got ' + o.number + '); UI zero-pads to 3 digits');
 });
@@ -404,7 +410,7 @@ test('order lines carry the hot-kitchen flag (fried/grilled dishes flagged, sush
   const hot = items.find((i) => i.hot);            // e.g. yakitori / ebi-fry
   const cold = items.find((i) => !i.hot && i.price > 0); // e.g. a nigiri
   assert.ok(hot && cold, 'menu has both hot and cold items');
-  const r = await post('/api/orders', { name: 'Hot Test', phone: '0700000000', items: [{ id: hot.id, qty: 1 }, { id: cold.id, qty: 2 }], pickupDate: DATE, pickupTime: '12:00', lang: 'sv' });
+  const r = await post('/api/orders', { name: 'Hot Test', phone: '0700000000', items: [{ id: hot.id, qty: 1 }, { id: cold.id, qty: 2 }], pickupDate: PICK.date, pickupTime: PICK.time, lang: 'sv' });
   const o = await r.json();
   const list = (await (await fetch(B + '/api/admin/orders', { headers: { cookie } })).json()).orders;
   const mine = list.find((x) => x.id === o.id);
@@ -413,3 +419,31 @@ test('order lines carry the hot-kitchen flag (fried/grilled dishes flagged, sush
   assert.equal(hotLine.hot, true, 'fried/grilled dish is flagged hot');
   assert.ok(!coldLine.hot, 'sushi/cold dish is not flagged hot');
 });
+
+test('order history: /all search + filter, and the activity log records each step', async () => {
+  const login = await post('/api/admin/login', { pin: '9999' });
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  const menu = await (await fetch(B + '/api/menu')).json();
+  const item = menu.categories[0].items[0];
+  const r = await post('/api/orders', { name: 'Historik Testsson', phone: '0705559999', items: [{ id: item.id, qty: 1 }], pickupDate: PICK.date, pickupTime: PICK.time, lang: 'sv' });
+  const o = await r.json();
+  await fetch(`${B}/api/admin/orders/${o.id}/status`, { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ status: 'accepted' }) });
+
+  const all = await (await fetch(B + '/api/admin/orders/all', { headers: { cookie } })).json();
+  assert.ok(all.total >= 1 && all.orders.some((x) => x.id === o.id), 'history lists the order');
+  assert.equal((await fetch(B + '/api/admin/orders/all')).status, 401, 'history needs the admin cookie');
+
+  const byNum = await (await fetch(`${B}/api/admin/orders/all?q=${pad(o.number)}`, { headers: { cookie } })).json();
+  assert.ok(byNum.orders.some((x) => x.id === o.id), 'search by number finds it');
+  const byName = await (await fetch(`${B}/api/admin/orders/all?q=historik`, { headers: { cookie } })).json();
+  assert.ok(byName.orders.some((x) => x.id === o.id), 'search by name finds it');
+  const wrong = await (await fetch(`${B}/api/admin/orders/all?q=zzzznotfound`, { headers: { cookie } })).json();
+  assert.ok(!wrong.orders.some((x) => x.id === o.id), 'irrelevant search excludes it');
+
+  const mine = all.orders.find((x) => x.id === o.id);
+  const evs = mine.events.map((e) => e.ev);
+  assert.ok(evs.includes('created') && evs.includes('accepted'), 'activity log has created + accepted with timestamps');
+  assert.ok(mine.events.every((e) => e.t), 'each event has a timestamp');
+});
+
+function pad(n) { const s = String(n); return s.length >= 3 ? s : ('000' + s).slice(-3); }

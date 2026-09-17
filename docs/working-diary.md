@@ -323,3 +323,30 @@ confirmation #001 → live on the TV board), Stripe checkout + webhook verified
 (200, expiry cancels). 20 smoke tests pass. Note: on a short desktop viewport a
 very large cart pushes the Place-order button low (mobile uses a bottom sheet,
 fine).
+
+## 2026-09-17 — Wix-parity order dashboard + live customer sync
+
+Owner is moving off Wix and wants the back-office to match (their order-detail
+page + Kanban board). Built into the kitchen app (`/admin`):
+
+- **Order detail modal** (click any card or history row): item lines with
+  photos, hot lines flagged, payment breakdown (subtotal, VAT 12%, amount paid,
+  method, Stripe/Swish payment ID), an **activity timeline** (created → paid →
+  accepted → ready → done → refunded, each timestamped), customer contact
+  (tel/mailto), delivery method + time + address, and the same accept/ready/
+  done/cancel/refund actions. Tri-lingual (SV/EN/中文).
+- **Order history tab** with search (number / name / phone / email) and status
+  filter, over all orders — new `GET /api/admin/orders/all?q=&status=&limit=&offset=`.
+- **Activity log** now recorded on every order (`events[]`), exposed via the
+  richer `publicAdminOrder` (adds updatedAt, paymentRef, events, lang).
+
+**Live customer sync (the key ask).** The customer's own status page now holds
+an SSE stream (`GET /api/orders/:id/stream?token=`); every status change —
+from the live list, the detail modal, or history — pushes an instant update, so
+accept → ready → done reflects on the customer's page within the same second
+(verified: 3/3 kitchen actions each pushed a live update). A 20s poll remains as
+a safety net. Refund also broadcasts so the customer sees "Refunded" at once.
+
+21 smoke tests pass (added history/search + activity-log coverage). Also fixed a
+latent test bug: `nextFullDay()` could land outside the 2-day pickup window on
+Thu/Fri, so pickup-order tests now fetch a real slot — CI is day-of-week robust.
