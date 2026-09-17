@@ -89,6 +89,7 @@ function saveJson(file, value) {
 let orders = loadJson('orders.json', []);
 let reservations = loadJson('reservations.json', []);
 let closures = loadJson('closures.json', []); // [{ id, from, to, message, message_en, createdAt }] — days the restaurant is closed
+let settings = loadJson('settings.json', { orderingPaused: false, pauseMessage: '', pauseMessage_en: '' }); // quick 'pause online orders' switch
 
 // ---------------------------------------------------------------- closures (holidays, private events, ...)
 function isoDate(d) { return `${d.getFullYear()}-${fmt2(d.getMonth() + 1)}-${fmt2(d.getDate())}`; }
@@ -776,6 +777,7 @@ const server = http.createServer(async (req, res) => {
         currency: 'SEK',
         reviewUrl: REVIEW_URL || (GOOGLE_PLACE_ID ? `https://search.google.com/local/writereview?placeid=` : null),
         closures: upcomingClosures().map(publicClosure), // current + future closed periods, for the site's notice
+        orderingPaused: !!settings.orderingPaused, pauseMessage: settings.pauseMessage || '', pauseMessage_en: settings.pauseMessage_en || '',
       });
     }
 
@@ -802,6 +804,7 @@ const server = http.createServer(async (req, res) => {
 
     if (p === '/api/orders' && req.method === 'POST') {
       if (rateLimited(req, RATE_MAX)) return sendJson(res, 429, { error: 'För många försök — vänta en stund.' });
+      if (settings.orderingPaused) return sendJson(res, 503, { error: settings.pauseMessage || 'Vi tar tyvärr inte emot beställningar just nu — ring oss på 031-83 17 86.' });
       const body = await readJsonBody(req);
       try {
         const order = createOrder(body);
@@ -936,6 +939,16 @@ const server = http.createServer(async (req, res) => {
     if (p.startsWith('/api/admin/')) {
       if (!isAdmin(req)) return sendJson(res, 401, { error: 'unauthorized' });
 
+      // ---- pause switch: temporarily stop taking online orders
+      if (p === '/api/admin/settings' && req.method === 'GET') return sendJson(res, 200, settings);
+      if (p === '/api/admin/pause' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        settings.orderingPaused = !!body.paused;
+        settings.pauseMessage = sanitizeStr(body.message, 200);
+        settings.pauseMessage_en = sanitizeStr(body.message_en, 200);
+        saveJson('settings.json', settings);
+        return sendJson(res, 200, settings);
+      }
       // ---- closures: days the restaurant is closed (set from the dashboard)
       if (p === '/api/admin/closures' && req.method === 'GET') return sendJson(res, 200, { closures: upcomingClosures() });
       if (p === '/api/admin/closures' && req.method === 'POST') {

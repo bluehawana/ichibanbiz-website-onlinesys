@@ -447,3 +447,20 @@ test('order history: /all search + filter, and the activity log records each ste
 });
 
 function pad(n) { const s = String(n); return s.length >= 3 ? s : ('000' + s).slice(-3); }
+
+test('pause switch: paused blocks new online orders, resume restores them', async () => {
+  const login = await post('/api/admin/login', { pin: '9999' });
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  const menu = await (await fetch(B + '/api/menu')).json();
+  const item = menu.categories[0].items[0];
+  const order = () => post('/api/orders', { name: 'Paus Test', phone: '0700000000', items: [{ id: item.id, qty: 1 }], pickupDate: PICK.date, pickupTime: PICK.time, lang: 'sv' });
+  assert.equal((await order()).status, 201, 'orders work before pausing');
+  const p = await fetch(B + '/api/admin/pause', { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ paused: true, message: 'Kort paus' }) });
+  assert.equal((await p.json()).orderingPaused, true);
+  const cfg = await (await fetch(B + '/api/config')).json();
+  assert.equal(cfg.orderingPaused, true, 'config tells the site it is paused');
+  const blocked = await order();
+  assert.equal(blocked.status, 503, 'new order refused while paused');
+  await fetch(B + '/api/admin/pause', { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ paused: false }) });
+  assert.equal((await order()).status, 201, 'orders work again after resume');
+});

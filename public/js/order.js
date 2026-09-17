@@ -254,6 +254,13 @@
   // ---------- boot ----------
   fetch('/api/config').then((r) => r.json()).then((cfg) => {
     CONFIG = cfg;
+    if (cfg.orderingPaused) {
+      const en = window.I18N && window.I18N.lang === 'en';
+      const msg = (en && cfg.pauseMessage_en) || cfg.pauseMessage || (en ? 'We are not taking online orders right now — please call us on 031-83 17 86.' : 'Vi tar inte emot beställningar online just nu — ring oss gärna på 031-83 17 86.');
+      const box = document.getElementById('order-paused');
+      if (box) { box.textContent = msg; box.hidden = false; }
+      const co = document.getElementById('checkout'); if (co) co.hidden = true; // hide the cart/checkout form
+    }
     const anyOnline = cfg.onlinePayment || cfg.swish;
     document.getElementById('pay-field').hidden = !anyOnline;
     document.getElementById('pay-online').hidden = !cfg.onlinePayment;

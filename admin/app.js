@@ -23,6 +23,7 @@
       'ntf.order': 'Ny beställning #{n}', 'ntf.orderBody': '{l} rader · {sum} kr · hämtas {t}', 'ntf.booking': 'Ny bordsbokning', 'ntf.bookingBody': '{n} gäster · {d} kl {t}',
       'doc.order': '🔔 NY BESTÄLLNING — Ichiban Kök', 'doc.booking': '🔔 NY BOKNING — Ichiban Kök', 'doc.idle': 'Ichiban Kök — beställningar',
       'hot.kitchen': 'Varmkök',
+      'pause.title': 'Onlinebeställningar', 'pause.on': 'Tar emot beställningar', 'pause.off': 'Pausad — inga onlinebeställningar', 'pause.btnPause': 'Pausa beställningar', 'pause.btnResume': 'Återuppta', 'pause.msg': 'Meddelande till kunderna (valfritt)', 'pause.ph': 't.ex. Vi har mycket att göra — öppnar för beställningar igen snart!',
       'tab.history': 'Historik', 'hist.search': 'Sök nummer, namn, telefon…', 'hist.all': 'Alla', 'hist.none': 'Inga ordrar hittades.',
       'd.placed': 'Lagd', 'd.items': 'Varor', 'd.payment': 'Betalning', 'd.subtotal': 'Delsumma', 'd.vat': 'varav moms (12%)', 'd.total': 'Totalt', 'd.paidAmt': 'Betalt belopp', 'd.paidWith': 'Betalt med', 'd.ref': 'Betalnings-ID', 'd.unpaidNote': 'Betalas vid avhämtning', 'd.contact': 'Kontakt', 'd.delivery': 'Leverans', 'd.address': 'Adress', 'd.activity': 'Orderhändelser', 'd.guests': 'gäster', 'd.eathere': 'Ät här', 'd.pickup': 'Avhämtning',
       'pm.online': 'Kort · Apple Pay · Google Pay', 'pm.swish': 'Swish', 'pm.pickup': 'I restaurangen',
@@ -48,6 +49,7 @@
       'ntf.order': 'New order #{n}', 'ntf.orderBody': '{l} lines · {sum} kr · pickup {t}', 'ntf.booking': 'New table booking', 'ntf.bookingBody': '{n} guests · {d} at {t}',
       'doc.order': '🔔 NEW ORDER — Ichiban Kitchen', 'doc.booking': '🔔 NEW BOOKING — Ichiban Kitchen', 'doc.idle': 'Ichiban Kitchen — orders',
       'hot.kitchen': 'Hot kitchen',
+      'pause.title': 'Online orders', 'pause.on': 'Accepting orders', 'pause.off': 'Paused — no online orders', 'pause.btnPause': 'Pause orders', 'pause.btnResume': 'Resume', 'pause.msg': 'Message to customers (optional)', 'pause.ph': 'e.g. We are very busy — back to taking orders soon!',
       'tab.history': 'History', 'hist.search': 'Search number, name, phone…', 'hist.all': 'All', 'hist.none': 'No orders found.',
       'd.placed': 'Placed', 'd.items': 'Items', 'd.payment': 'Payment', 'd.subtotal': 'Subtotal', 'd.vat': 'incl. VAT (12%)', 'd.total': 'Total', 'd.paidAmt': 'Amount paid', 'd.paidWith': 'Paid with', 'd.ref': 'Payment ID', 'd.unpaidNote': 'Pays at pickup', 'd.contact': 'Contact', 'd.delivery': 'Delivery', 'd.address': 'Address', 'd.activity': 'Order activity', 'd.guests': 'guests', 'd.eathere': 'Eat here', 'd.pickup': 'Pickup',
       'pm.online': 'Card · Apple Pay · Google Pay', 'pm.swish': 'Swish', 'pm.pickup': 'In the restaurant',
@@ -73,6 +75,7 @@
       'ntf.order': '新订单 #{n}', 'ntf.orderBody': '{l} 项 · {sum} kr · 取餐 {t}', 'ntf.booking': '新预订', 'ntf.bookingBody': '{n} 人 · {d} {t}',
       'doc.order': '🔔 新订单 — Ichiban 厨房', 'doc.booking': '🔔 新预订 — Ichiban 厨房', 'doc.idle': 'Ichiban 厨房 — 订单',
       'hot.kitchen': '热厨',
+      'pause.title': '在线订单', 'pause.on': '正在接单', 'pause.off': '已暂停 — 不接在线订单', 'pause.btnPause': '暂停接单', 'pause.btnResume': '恢复接单', 'pause.msg': '给顾客的信息（可选）', 'pause.ph': '例如：我们很忙 — 稍后恢复接单！',
       'tab.history': '历史', 'hist.search': '搜索编号、姓名、电话…', 'hist.all': '全部', 'hist.none': '未找到订单。',
       'd.placed': '下单', 'd.items': '商品', 'd.payment': '付款', 'd.subtotal': '小计', 'd.vat': '含增值税 (12%)', 'd.total': '合计', 'd.paidAmt': '已付金额', 'd.paidWith': '付款方式', 'd.ref': '付款编号', 'd.unpaidNote': '取餐时付款', 'd.contact': '联系', 'd.delivery': '取餐方式', 'd.address': '地址', 'd.activity': '订单记录', 'd.guests': '人', 'd.eathere': '堂食', 'd.pickup': '取餐',
       'pm.online': '银行卡 · Apple Pay · Google Pay', 'pm.swish': 'Swish', 'pm.pickup': '在餐厅',
@@ -112,6 +115,7 @@
   let tab = 'orders';
   let es = null;
   let imgById = {}, allOrders = [], detailOrder = null, histQ = '', histSt = '';
+  let pauseState = { orderingPaused: false, pauseMessage: '', pauseMessage_en: '' };
 
   // ---------------- alarm (WebAudio — no sound file needed) ----------------
   let audioCtx = null;
@@ -238,8 +242,8 @@
     return res.json();
   }
   async function loadAll() {
-    const [o, b, c] = await Promise.all([api('/api/admin/orders'), api('/api/admin/reservations'), api('/api/admin/closures')]);
-    ordersList = o.orders; bookings = b.reservations; closures = c.closures || [];
+    const [o, b, c, s] = await Promise.all([api('/api/admin/orders'), api('/api/admin/reservations'), api('/api/admin/closures'), api('/api/admin/settings')]);
+    ordersList = o.orders; bookings = b.reservations; closures = c.closures || []; pauseState = s || pauseState;
     render();
   }
 
@@ -252,7 +256,16 @@
     const listHtml = closures.length
       ? closures.map((c) => `<div class="card closure"><div><div class="when">${esc(t('h.closed', { r: closureRange(c) }))}</div>${c.message ? `<div class="msg">${esc(c.message)}</div>` : ''}</div><button class="del" data-del="${esc(c.id)}">${t('h.remove')}</button></div>`).join('')
       : `<p class="empty">${t('h.none')}</p>`;
+    const paused = pauseState.orderingPaused;
     list.innerHTML = `
+      <div class="card">
+        <div class="row" style="align-items:center;gap:1rem">
+          <div><div class="num" style="font-size:1.1rem">${t('pause.title')}</div>
+            <div class="meta" style="margin-top:0.2rem">${paused ? '⏸ ' + t('pause.off') : '🟢 ' + t('pause.on')}</div></div>
+          <button id="pause-btn" style="min-width:150px;padding:0.75rem 1.1rem;border-radius:11px;font-weight:700;border:none;font:inherit;font-size:1rem;background:${paused ? 'var(--ok)' : 'var(--aka)'};color:#fff">${paused ? t('pause.btnResume') : t('pause.btnPause')}</button>
+        </div>
+        <label class="hours-form" id="pause-msg-wrap" style="margin-top:0.8rem;${paused ? '' : 'display:none'}">${t('pause.msg')}<input id="pause-msg" maxlength="200" placeholder="${esc(t('pause.ph'))}" value="${esc(pauseState.pauseMessage || '')}"></label>
+      </div>
       <div class="card">
         <div class="num" style="font-size:1.15rem;margin-bottom:0.6rem">${t('h.title')}</div>
         <p class="meta" style="margin-bottom:0.8rem">${t('h.desc')}</p>
@@ -285,6 +298,13 @@
       closures = (await api('/api/admin/closures')).closures;
       renderHours();
     }));
+    $('pause-btn').addEventListener('click', async () => {
+      const nextPaused = !pauseState.orderingPaused;
+      const msg = $('pause-msg') ? $('pause-msg').value : '';
+      const res = await fetch('/api/admin/pause', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paused: nextPaused, message: msg }) });
+      pauseState = await res.json();
+      renderHours();
+    });
   }
   function connectSSE() {
     if (es) es.close();
