@@ -23,6 +23,7 @@
       'ntf.order': 'Ny beställning #{n}', 'ntf.orderBody': '{l} rader · {sum} kr · hämtas {t}', 'ntf.booking': 'Ny bordsbokning', 'ntf.bookingBody': '{n} gäster · {d} kl {t}',
       'doc.order': '🔔 NY BESTÄLLNING — Ichiban Kök', 'doc.booking': '🔔 NY BOKNING — Ichiban Kök', 'doc.idle': 'Ichiban Kök — beställningar',
       'hot.kitchen': 'Varmkök',
+      'btn.print': '🖨 Skriv ut', 'auto.print': 'Autoutskrift', 'card.pickupWord': 'Hämtas',
       'pause.title': 'Onlinebeställningar', 'tab.menu': 'Meny', 'menu.search': 'Sök rätt…', 'menu.inStock': 'I lager', 'menu.soldOut': 'Slut', 'menu.show': 'Visa', 'menu.hide': 'Dölj', 'pause.on': 'Tar emot beställningar', 'pause.off': 'Pausad — inga onlinebeställningar', 'pause.btnPause': 'Pausa beställningar', 'pause.btnResume': 'Återuppta', 'pause.msg': 'Meddelande till kunderna (valfritt)', 'pause.ph': 't.ex. Vi har mycket att göra — öppnar för beställningar igen snart!',
       'tab.history': 'Historik', 'hist.search': 'Sök nummer, namn, telefon…', 'hist.all': 'Alla', 'hist.none': 'Inga ordrar hittades.',
       'd.placed': 'Lagd', 'd.items': 'Varor', 'd.payment': 'Betalning', 'd.subtotal': 'Delsumma', 'd.vat': 'varav moms (12%)', 'd.total': 'Totalt', 'd.paidAmt': 'Betalt belopp', 'd.paidWith': 'Betalt med', 'd.ref': 'Betalnings-ID', 'd.unpaidNote': 'Betalas vid avhämtning', 'd.contact': 'Kontakt', 'd.delivery': 'Leverans', 'd.address': 'Adress', 'd.activity': 'Orderhändelser', 'd.guests': 'gäster', 'd.eathere': 'Ät här', 'd.pickup': 'Avhämtning',
@@ -49,6 +50,7 @@
       'ntf.order': 'New order #{n}', 'ntf.orderBody': '{l} lines · {sum} kr · pickup {t}', 'ntf.booking': 'New table booking', 'ntf.bookingBody': '{n} guests · {d} at {t}',
       'doc.order': '🔔 NEW ORDER — Ichiban Kitchen', 'doc.booking': '🔔 NEW BOOKING — Ichiban Kitchen', 'doc.idle': 'Ichiban Kitchen — orders',
       'hot.kitchen': 'Hot kitchen',
+      'btn.print': '🖨 Print', 'auto.print': 'Auto-print', 'card.pickupWord': 'Pickup',
       'pause.title': 'Online orders', 'tab.menu': 'Menu', 'menu.search': 'Search dish…', 'menu.inStock': 'In stock', 'menu.soldOut': 'Sold out', 'menu.show': 'Show', 'menu.hide': 'Hide', 'pause.on': 'Accepting orders', 'pause.off': 'Paused — no online orders', 'pause.btnPause': 'Pause orders', 'pause.btnResume': 'Resume', 'pause.msg': 'Message to customers (optional)', 'pause.ph': 'e.g. We are very busy — back to taking orders soon!',
       'tab.history': 'History', 'hist.search': 'Search number, name, phone…', 'hist.all': 'All', 'hist.none': 'No orders found.',
       'd.placed': 'Placed', 'd.items': 'Items', 'd.payment': 'Payment', 'd.subtotal': 'Subtotal', 'd.vat': 'incl. VAT (12%)', 'd.total': 'Total', 'd.paidAmt': 'Amount paid', 'd.paidWith': 'Paid with', 'd.ref': 'Payment ID', 'd.unpaidNote': 'Pays at pickup', 'd.contact': 'Contact', 'd.delivery': 'Delivery', 'd.address': 'Address', 'd.activity': 'Order activity', 'd.guests': 'guests', 'd.eathere': 'Eat here', 'd.pickup': 'Pickup',
@@ -75,6 +77,7 @@
       'ntf.order': '新订单 #{n}', 'ntf.orderBody': '{l} 项 · {sum} kr · 取餐 {t}', 'ntf.booking': '新预订', 'ntf.bookingBody': '{n} 人 · {d} {t}',
       'doc.order': '🔔 新订单 — Ichiban 厨房', 'doc.booking': '🔔 新预订 — Ichiban 厨房', 'doc.idle': 'Ichiban 厨房 — 订单',
       'hot.kitchen': '热厨',
+      'btn.print': '🖨 打印', 'auto.print': '自动打印', 'card.pickupWord': '取餐',
       'pause.title': '在线订单', 'tab.menu': '菜单', 'menu.search': '搜索菜品…', 'menu.inStock': '有货', 'menu.soldOut': '售罄', 'menu.show': '显示', 'menu.hide': '隐藏', 'pause.on': '正在接单', 'pause.off': '已暂停 — 不接在线订单', 'pause.btnPause': '暂停接单', 'pause.btnResume': '恢复接单', 'pause.msg': '给顾客的信息（可选）', 'pause.ph': '例如：我们很忙 — 稍后恢复接单！',
       'tab.history': '历史', 'hist.search': '搜索编号、姓名、电话…', 'hist.all': '全部', 'hist.none': '未找到订单。',
       'd.placed': '下单', 'd.items': '商品', 'd.payment': '付款', 'd.subtotal': '小计', 'd.vat': '含增值税 (12%)', 'd.total': '合计', 'd.paidAmt': '已付金额', 'd.paidWith': '付款方式', 'd.ref': '付款编号', 'd.unpaidNote': '取餐时付款', 'd.contact': '联系', 'd.delivery': '取餐方式', 'd.address': '地址', 'd.activity': '订单记录', 'd.guests': '人', 'd.eathere': '堂食', 'd.pickup': '取餐',
@@ -98,10 +101,12 @@
     document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
     const conn = $('conn'); if (conn) conn.title = t('conn');
     document.querySelectorAll('.langs').forEach((box) => {
-      box.innerHTML = ['sv', 'en', 'zh'].map((l) => `<button type="button" data-lang="${l}" class="${l === lang ? 'active' : ''}">${{ sv: 'SV', en: 'EN', zh: '中文' }[l]}</button>`).join('');
+      box.innerHTML = ['sv', 'en', 'zh'].map((l) => `<button type="button" data-lang="${l}" class="${l === lang ? 'active' : ''}">${{ sv: 'SV', en: 'EN', zh: '中文' }[l]}</button>`).join('')
+        + `<button type="button" id="autoprint-btn" class="${autoPrint ? 'active' : ''}" title="${t('auto.print')}">${t('auto.print')}</button>`;
     });
   }
   document.addEventListener('click', (e) => {
+    if (e.target.closest('#autoprint-btn')) { autoPrint = !autoPrint; try { localStorage.setItem('ichiban-autoprint', autoPrint ? '1' : '0'); } catch (er) {} applyStatic(); return; }
     const b = e.target.closest('.langs button[data-lang]');
     if (!b) return;
     lang = b.dataset.lang;
@@ -117,6 +122,28 @@
   let imgById = {}, allOrders = [], detailOrder = null, histQ = '', histSt = '';
   let pauseState = { orderingPaused: false, pauseMessage: '', pauseMessage_en: '' };
   let menuData = null, menuQ = '';
+  let autoPrint = false; try { autoPrint = localStorage.getItem('ichiban-autoprint') === '1'; } catch (e) {}
+
+  // ---------------- kitchen ticket printing (Bluetooth Star printer via the tablet) ----------------
+  function buildTicket(o) {
+    const dinein = o.serviceType === 'dinein';
+    const lines = o.lines.map((l) => `<div class="t-line ${l.hot ? 't-hot' : ''}"><span>${l.hot ? '* ' : ''}${l.qty} x ${esc(dish(l))}${l.option ? ' / ' + esc(l.option) : ''}</span><span>${l.lineTotal} kr</span></div>`).join('');
+    return `<div class="ticket">
+      <div style="text-align:center;font-weight:bold;font-size:14pt">ICHIBAN SUSHI</div>
+      <div class="t-num">#${pad3(o.number)}</div>
+      <div class="t-sub">${dinein ? `AT HAR - ${o.guests} gaster - ${esc(o.pickup.time)}` : `${t('card.pickupWord')} ${esc(o.pickup.time)}`}</div>
+      <hr>${lines}<hr>
+      <div class="t-line" style="font-weight:bold"><span>Summa</span><span>${o.total} kr</span></div>
+      <div class="t-line"><span>${o.paid ? 'BETALD' : 'Betalas vid hamtning'}</span><span></span></div>
+      ${o.note ? `<div class="t-note">! ${esc(o.note)}</div>` : ''}
+      <div class="t-cust">${esc(o.customer.name)} - ${esc(o.customer.phone)}</div>
+    </div>`;
+  }
+  function printOrder(o) {
+    const area = $('print-area'); if (!area) return;
+    area.innerHTML = buildTicket(o);
+    window.print();
+  }
 
   // ---------------- alarm (WebAudio — no sound file needed) ----------------
   let audioCtx = null;
@@ -179,7 +206,7 @@
       accepted: `<button class="b-ready" data-a="ready">${t('btn.ready')}</button><button class="b-cancel" data-a="cancelled">${t('btn.cancel')}</button>`,
       ready: `<button class="b-done" data-a="done">${t('btn.done')}</button>`,
       done: '', cancelled: '',
-    }[o.status] || '') + refundBtn;
+    }[o.status] || '') + refundBtn + `<button class="b-print" data-print="${esc(o.id)}">${t('btn.print')}</button>`;
     const dinein = o.serviceType === 'dinein';
     return `<div class="card ${o.status === 'new' ? 'new' : ''}" data-id="${esc(o.id)}" data-kind="order">
       <div class="row">
@@ -316,6 +343,7 @@
     es.addEventListener('order', (e) => {
       const o = JSON.parse(e.data);
       ordersList.unshift(o);
+      if (autoPrint) setTimeout(() => printOrder(o), 400); // new order -> print ticket
       notify(t('ntf.order', { n: pad3(o.number) }), t('ntf.orderBody', { l: o.lines.length, sum: o.total, t: o.pickup.time }));
       render();
     });
@@ -352,11 +380,13 @@
     try { await api(`/api/admin/${kind}/${id}/status`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: btn.dataset.a }) }); await loadAll(); if (after) await after(); } catch { btn.disabled = false; }
   }
   $('list').addEventListener('click', async (e) => {
+    const pb = e.target.closest('button[data-print]');
+    if (pb) { const o = ordersList.find((x) => x.id === pb.dataset.print) || allOrders.find((x) => x.id === pb.dataset.print); if (o) printOrder(o); return; }
     if (e.target.closest('button')) { await onActionClick(e); return; }
     const card = e.target.closest('.card[data-kind="order"]');
     if (card) { const o = ordersList.find((x) => x.id === card.dataset.id) || allOrders.find((x) => x.id === card.dataset.id); if (o) openDetail(o); }
   });
-  $('detail-body').addEventListener('click', (e) => onActionClick(e, refreshDetail));
+  $('detail-body').addEventListener('click', (e) => { const pb = e.target.closest('button[data-print]'); if (pb && detailOrder) { printOrder(detailOrder); return; } onActionClick(e, refreshDetail); });
   $('detail-close').addEventListener('click', closeDetail);
   $('detail').addEventListener('click', (e) => { if (e.target === $('detail')) closeDetail(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('detail').hidden) closeDetail(); });
@@ -370,6 +400,7 @@
     else if (o.status === 'accepted') b.push(`<button class="b-ready" data-a="ready" data-id="${o.id}" data-kind="order">${t('btn.ready')}</button>`, `<button class="b-cancel" data-a="cancelled" data-id="${o.id}" data-kind="order">${t('btn.cancel')}</button>`);
     else if (o.status === 'ready') b.push(`<button class="b-done" data-a="done" data-id="${o.id}" data-kind="order">${t('btn.done')}</button>`);
     if (o.canRefund) b.push(`<button class="b-cancel b-refund" data-refund="${o.id}">${t('btn.refund')}</button>`);
+    b.push(`<button class="b-print" data-print="${o.id}">${t('btn.print')}</button>`);
     return b.join('');
   }
   function detailHtml(o) {

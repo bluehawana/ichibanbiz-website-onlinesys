@@ -131,6 +131,22 @@
   #soundgate.show { display:grid; }
   #soundgate button { padding:1.1rem 2.2rem; font-size:1.15rem; border-radius:14px; border:none; background:var(--aka); color:#fff; font-weight:700; }
   #soundgate p { color:var(--dim); margin-top:1rem; max-width:34ch; }
+  /* kitchen ticket printing (80mm Bluetooth Star printer via the tablet's print) */
+  #print-area { display:none; }
+  @media print {
+    body * { visibility:hidden; }
+    #print-area, #print-area * { visibility:visible; }
+    #print-area { display:block; position:absolute; left:0; top:0; width:100%; color:#000; font-family:'Courier New',monospace; }
+    .ticket { width:72mm; padding:2mm 1mm; font-size:12pt; line-height:1.35; }
+    .ticket .t-num { font-size:26pt; font-weight:bold; text-align:center; margin:2mm 0; }
+    .ticket .t-sub { text-align:center; font-size:11pt; margin-bottom:2mm; }
+    .ticket hr { border:0; border-top:1px dashed #000; margin:2mm 0; }
+    .ticket .t-line { display:flex; justify-content:space-between; gap:4mm; font-size:13pt; margin:1mm 0; }
+    .ticket .t-hot { font-weight:bold; }
+    .ticket .t-note { margin-top:2mm; font-weight:bold; }
+    .ticket .t-cust { margin-top:2mm; font-size:11pt; }
+  }
+  .b-print { background:var(--card); color:var(--ink); border:1px solid var(--line); }
 </style>
 </head>
 <body>
@@ -162,6 +178,8 @@
   </div>
   <main id="list"></main>
 </div>
+
+<div id="print-area" aria-hidden="true"></div>
 
 <div id="detail" class="modal" hidden>
   <div class="modal-card">

@@ -377,3 +377,13 @@ and restart. Same key powers customer receipts.
 23 smoke tests pass. Remaining Wix items to scope: POS/kassa, kitchen thermal
 printing (needs printer model), tips/service-fee/tax at checkout, partial
 refunds, coupons/loyalty/gift cards (marketing — likely skip).
+
+**Kitchen ticket printing (Star TSP143III).** 🖨 Skriv ut button on every order
+card and in the detail modal → prints an 80mm ticket (big #number, items with
+* for hot-kitchen lines, total, payment, note, customer) via the tablet's
+system print to the paired Star printer. An "Autoutskrift" toggle in the header
+auto-triggers a print when a new order arrives (per device, remembered).
+Printer confirmed: Star Micronics TSP143III (Bluetooth, with Zettle). For fully
+silent auto-print (no dialog) the LAN/Ethernet TSP143III variant supports Star
+WebPRNT/CloudPRNT — could POST tickets straight to the printer's IP; offered as
+a next step if they network it.
