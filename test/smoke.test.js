@@ -464,3 +464,30 @@ test('pause switch: paused blocks new online orders, resume restores them', asyn
   await fetch(B + '/api/admin/pause', { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify({ paused: false }) });
   assert.equal((await order()).status, 201, 'orders work again after resume');
 });
+
+test('menu editing: sold-out blocks ordering, price override applies, hidden removed from site', async () => {
+  const login = await post('/api/admin/login', { pin: '9999' });
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  const set = (patch) => fetch(B + '/api/admin/menu/item', { method: 'POST', headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(patch) });
+  const menu = await (await fetch(B + '/api/menu')).json();
+  const item = menu.categories[0].items.find((i) => i.price > 0);
+
+  await set({ id: item.id, soldOut: true });
+  const pub1 = await (await fetch(B + '/api/menu')).json();
+  assert.equal(pub1.categories.flatMap((c) => c.items).find((i) => i.id === item.id).soldOut, true, 'site marks it sold out');
+  const blocked = await post('/api/orders', { name: 'Slut Test', phone: '0700000000', items: [{ id: item.id, qty: 1 }], pickupDate: PICK.date, pickupTime: PICK.time, lang: 'sv' });
+  assert.equal(blocked.status, 400, 'cannot order a sold-out dish');
+  await set({ id: item.id, soldOut: false });
+
+  await set({ id: item.id, price: item.price + 7 });
+  const pub2 = await (await fetch(B + '/api/menu')).json();
+  assert.equal(pub2.categories.flatMap((c) => c.items).find((i) => i.id === item.id).price, item.price + 7, 'price override shown');
+  const ord = await (await post('/api/orders', { name: 'Pris Test', phone: '0700000000', items: [{ id: item.id, qty: 1 }], pickupDate: PICK.date, pickupTime: PICK.time, lang: 'sv' })).json();
+  assert.equal(ord.total, item.price + 7, 'order charged the override price');
+  await set({ id: item.id, price: null }); // reset
+
+  await set({ id: item.id, hidden: true });
+  const pub3 = await (await fetch(B + '/api/menu')).json();
+  assert.ok(!pub3.categories.flatMap((c) => c.items).some((i) => i.id === item.id), 'hidden item not on the site');
+  await set({ id: item.id, hidden: false });
+});

@@ -16,16 +16,17 @@
   const tagLabel = (x) => (window.I18N && window.I18N.lang === 'en' && TAG_EN[x]) || x;
   const tagsHtml = (t) => (t && t.length) ? `<div class="tags">${t.map((x) => `<span class="tag ${esc(x)}">${esc(tagLabel(x))}</span>`).join('')}</div>` : '';
 
+  const soldLabel = () => (window.I18N && window.I18N.lang === 'en') ? 'Sold out' : 'Slut';
   function cardHtml(it) {
     const img = it.img ? `<img class="photo" src="/assets/img/menu/${esc(it.img)}" alt="${esc(lf(it, 'name'))}" loading="lazy">` : '';
-    return `<div class="dish-card">${img}<div class="body">
-      <div class="row"><h3>${it.star ? '★ ' : ''}${esc(lf(it, 'name'))}</h3><span class="price">${it.price} kr</span></div>
+    return `<div class="dish-card ${it.soldOut ? 'soldout' : ''}">${img}<div class="body">
+      <div class="row"><h3>${it.star ? '★ ' : ''}${esc(lf(it, 'name'))}${it.soldOut ? ` <span class="soldout-badge">${soldLabel()}</span>` : ''}</h3><span class="price">${it.price} kr</span></div>
       ${it.desc ? `<p class="desc">${esc(lf(it, 'desc'))}</p>` : ''}
       ${tagsHtml(it.tags)}
     </div></div>`;
   }
   function lineHtml(it) {
-    return `<div class="menu-line"><span class="nm">${esc(lf(it, 'name'))}${it.desc ? `<span class="desc">${esc(lf(it, 'desc'))}</span>` : ''}</span><span class="dots"></span><span class="price">${it.price} kr</span></div>`;
+    return `<div class="menu-line ${it.soldOut ? 'soldout' : ''}"><span class="nm">${esc(lf(it, 'name'))}${it.soldOut ? ` <span class="soldout-badge">${soldLabel()}</span>` : ''}${it.desc ? `<span class="desc">${esc(lf(it, 'desc'))}</span>` : ''}</span><span class="dots"></span><span class="price">${it.price} kr</span></div>`;
   }
 
   function render(menu) {

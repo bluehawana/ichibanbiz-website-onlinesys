@@ -114,6 +114,16 @@ function nextOrderNumber() {
 let MENU = JSON.parse(fs.readFileSync(path.join(PUBLIC_DIR, 'data', 'menu.json'), 'utf8'));
 const ITEM_INDEX = {};
 for (const cat of MENU.categories) for (const it of cat.items) ITEM_INDEX[it.id] = it;
+// operational menu overrides (out-of-stock, price, hidden) — kept in DATA_DIR so staff
+// edits survive code deploys (menu.json is the dev-owned canonical menu).
+let menuOverrides = loadJson('menu-overrides.json', {}); // { [itemId]: { soldOut?, hidden?, price? } }
+const ov = (id) => menuOverrides[id] || {};
+function publicMenu() {
+  return { ...MENU, categories: MENU.categories.map((c) => ({ ...c, items: c.items.filter((it) => !ov(it.id).hidden).map((it) => ({ ...it, price: ov(it.id).price != null ? ov(it.id).price : it.price, soldOut: !!ov(it.id).soldOut })) })) };
+}
+function adminMenu() {
+  return { categories: MENU.categories.map((c) => ({ id: c.id, name: c.name, items: c.items.map((it) => ({ id: it.id, name: it.name, name_en: it.name_en || '', price: it.price, priceOverride: ov(it.id).price != null ? ov(it.id).price : null, soldOut: !!ov(it.id).soldOut, hidden: !!ov(it.id).hidden, hot: !!it.hot, img: it.img || '' })) })) };
+}
 fs.watchFile(path.join(PUBLIC_DIR, 'data', 'menu.json'), { interval: 5000 }, () => {
   try {
     MENU = JSON.parse(fs.readFileSync(path.join(PUBLIC_DIR, 'data', 'menu.json'), 'utf8'));
@@ -467,12 +477,15 @@ function createOrder(body) {
   let total = 0;
   for (const raw of items) {
     const it = ITEM_INDEX[String(raw.id)];
+    const o = ov(String(raw.id));
     const qty = Math.max(1, Math.min(50, parseInt(raw.qty, 10) || 0));
-    if (!it || !qty) throw new Error('Okänd rätt i varukorgen.');
+    if (!it || o.hidden || !qty) throw new Error('Okänd rätt i varukorgen.');
+    if (o.soldOut) throw new Error(`${it.name} är tyvärr slut just nu — ta bort den och försök igen.`);
+    const price = o.price != null ? o.price : it.price;
     let option = null;
     if (it.options && raw.option && it.options.choices.includes(String(raw.option))) option = String(raw.option);
-    lines.push({ id: it.id, name: it.name, name_en: it.name_en || '', hot: !!it.hot, qty, unitPrice: it.price, option, lineTotal: it.price * qty }); // name_en + hot: kitchen reads it in English and sees which lines go to the hot kitchen
-    total += it.price * qty;
+    lines.push({ id: it.id, name: it.name, name_en: it.name_en || '', hot: !!it.hot, qty, unitPrice: price, option, lineTotal: price * qty }); // name_en + hot: kitchen reads it in English and sees which lines go to the hot kitchen
+    total += price * qty;
   }
 
   const wantsOnline = ONLINE_PAYMENT && body.paymentMethod === 'online';
@@ -769,7 +782,7 @@ const server = http.createServer(async (req, res) => {
 
   try {
     // ---------- public API
-    if (p === '/api/menu' && req.method === 'GET') return sendJson(res, 200, MENU);
+    if (p === '/api/menu' && req.method === 'GET') return sendJson(res, 200, publicMenu());
     if (p === '/api/config' && req.method === 'GET') {
       return sendJson(res, 200, {
         onlinePayment: ONLINE_PAYMENT,
@@ -939,6 +952,25 @@ const server = http.createServer(async (req, res) => {
     if (p.startsWith('/api/admin/')) {
       if (!isAdmin(req)) return sendJson(res, 401, { error: 'unauthorized' });
 
+      // ---- menu editing: out-of-stock, price, hide (persisted in menu-overrides.json)
+      if (p === '/api/admin/menu' && req.method === 'GET') return sendJson(res, 200, adminMenu());
+      if (p === '/api/admin/menu/item' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const id = String(body.id || '');
+        if (!ITEM_INDEX[id]) return sendJson(res, 400, { error: 'unknown item' });
+        const o = { ...(menuOverrides[id] || {}) };
+        if ('soldOut' in body) o.soldOut = !!body.soldOut;
+        if ('hidden' in body) o.hidden = !!body.hidden;
+        if ('price' in body) {
+          if (body.price === null || body.price === '') delete o.price;
+          else { const pr = parseInt(body.price, 10); if (Number.isFinite(pr) && pr >= 0 && pr < 100000) o.price = pr; }
+        }
+        if (!o.soldOut) delete o.soldOut;
+        if (!o.hidden) delete o.hidden;
+        if (Object.keys(o).length) menuOverrides[id] = o; else delete menuOverrides[id];
+        saveJson('menu-overrides.json', menuOverrides);
+        return sendJson(res, 200, { ok: true });
+      }
       // ---- pause switch: temporarily stop taking online orders
       if (p === '/api/admin/settings' && req.method === 'GET') return sendJson(res, 200, settings);
       if (p === '/api/admin/pause' && req.method === 'POST') {

@@ -37,6 +37,7 @@
   function addToCart(id, option) {
     const k = keyOf(id, option);
     const line = cart.find((l) => keyOf(l.id, l.option) === k);
+    if (ITEM[id] && ITEM[id].soldOut) return; // can't add a sold-out dish
     if (line) line.qty = Math.min(50, line.qty + 1);
     else cart.push({ id, qty: 1, option: option || null });
     persist(); renderCart(); syncQtyBadges();
@@ -61,19 +62,21 @@
     const opts = it.options
       ? `<select class="opt-select" data-id="${esc(it.id)}" aria-label="${esc(lf(it.options, 'label'))}">${it.options.choices.map((c) => `<option>${esc(c)}</option>`).join('')}</select>`
       : '';
-    return `<div class="order-item" data-id="${esc(it.id)}">
+    return `<div class="order-item ${it.soldOut ? 'soldout' : ''}" data-id="${esc(it.id)}">
       ${img}
       <div>
         <h4>${it.star ? '★ ' : ''}${esc(lf(it, 'name'))}</h4>
         ${it.desc ? `<p class="desc">${esc(lf(it, 'desc'))}</p>` : ''}
         <p class="pr">${kr(it.price)}</p>
-        ${opts}
+        ${it.soldOut ? '' : opts}
       </div>
-      <div class="qty-wrap">
+      ${it.soldOut
+        ? `<span class="soldout-badge">${tt('Slut')}</span>`
+        : `<div class="qty-wrap">
         <button class="qty-btn minus" aria-label="Ta bort en ${esc(it.name)}" hidden>−</button>
         <span class="n" hidden>0</span>
         <button class="qty-btn plus" aria-label="Lägg till ${esc(it.name)}">+</button>
-      </div>
+      </div>`}
     </div>`;
   }
 

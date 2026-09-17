@@ -23,7 +23,7 @@
       'ntf.order': 'Ny beställning #{n}', 'ntf.orderBody': '{l} rader · {sum} kr · hämtas {t}', 'ntf.booking': 'Ny bordsbokning', 'ntf.bookingBody': '{n} gäster · {d} kl {t}',
       'doc.order': '🔔 NY BESTÄLLNING — Ichiban Kök', 'doc.booking': '🔔 NY BOKNING — Ichiban Kök', 'doc.idle': 'Ichiban Kök — beställningar',
       'hot.kitchen': 'Varmkök',
-      'pause.title': 'Onlinebeställningar', 'pause.on': 'Tar emot beställningar', 'pause.off': 'Pausad — inga onlinebeställningar', 'pause.btnPause': 'Pausa beställningar', 'pause.btnResume': 'Återuppta', 'pause.msg': 'Meddelande till kunderna (valfritt)', 'pause.ph': 't.ex. Vi har mycket att göra — öppnar för beställningar igen snart!',
+      'pause.title': 'Onlinebeställningar', 'tab.menu': 'Meny', 'menu.search': 'Sök rätt…', 'menu.inStock': 'I lager', 'menu.soldOut': 'Slut', 'menu.show': 'Visa', 'menu.hide': 'Dölj', 'pause.on': 'Tar emot beställningar', 'pause.off': 'Pausad — inga onlinebeställningar', 'pause.btnPause': 'Pausa beställningar', 'pause.btnResume': 'Återuppta', 'pause.msg': 'Meddelande till kunderna (valfritt)', 'pause.ph': 't.ex. Vi har mycket att göra — öppnar för beställningar igen snart!',
       'tab.history': 'Historik', 'hist.search': 'Sök nummer, namn, telefon…', 'hist.all': 'Alla', 'hist.none': 'Inga ordrar hittades.',
       'd.placed': 'Lagd', 'd.items': 'Varor', 'd.payment': 'Betalning', 'd.subtotal': 'Delsumma', 'd.vat': 'varav moms (12%)', 'd.total': 'Totalt', 'd.paidAmt': 'Betalt belopp', 'd.paidWith': 'Betalt med', 'd.ref': 'Betalnings-ID', 'd.unpaidNote': 'Betalas vid avhämtning', 'd.contact': 'Kontakt', 'd.delivery': 'Leverans', 'd.address': 'Adress', 'd.activity': 'Orderhändelser', 'd.guests': 'gäster', 'd.eathere': 'Ät här', 'd.pickup': 'Avhämtning',
       'pm.online': 'Kort · Apple Pay · Google Pay', 'pm.swish': 'Swish', 'pm.pickup': 'I restaurangen',
@@ -49,7 +49,7 @@
       'ntf.order': 'New order #{n}', 'ntf.orderBody': '{l} lines · {sum} kr · pickup {t}', 'ntf.booking': 'New table booking', 'ntf.bookingBody': '{n} guests · {d} at {t}',
       'doc.order': '🔔 NEW ORDER — Ichiban Kitchen', 'doc.booking': '🔔 NEW BOOKING — Ichiban Kitchen', 'doc.idle': 'Ichiban Kitchen — orders',
       'hot.kitchen': 'Hot kitchen',
-      'pause.title': 'Online orders', 'pause.on': 'Accepting orders', 'pause.off': 'Paused — no online orders', 'pause.btnPause': 'Pause orders', 'pause.btnResume': 'Resume', 'pause.msg': 'Message to customers (optional)', 'pause.ph': 'e.g. We are very busy — back to taking orders soon!',
+      'pause.title': 'Online orders', 'tab.menu': 'Menu', 'menu.search': 'Search dish…', 'menu.inStock': 'In stock', 'menu.soldOut': 'Sold out', 'menu.show': 'Show', 'menu.hide': 'Hide', 'pause.on': 'Accepting orders', 'pause.off': 'Paused — no online orders', 'pause.btnPause': 'Pause orders', 'pause.btnResume': 'Resume', 'pause.msg': 'Message to customers (optional)', 'pause.ph': 'e.g. We are very busy — back to taking orders soon!',
       'tab.history': 'History', 'hist.search': 'Search number, name, phone…', 'hist.all': 'All', 'hist.none': 'No orders found.',
       'd.placed': 'Placed', 'd.items': 'Items', 'd.payment': 'Payment', 'd.subtotal': 'Subtotal', 'd.vat': 'incl. VAT (12%)', 'd.total': 'Total', 'd.paidAmt': 'Amount paid', 'd.paidWith': 'Paid with', 'd.ref': 'Payment ID', 'd.unpaidNote': 'Pays at pickup', 'd.contact': 'Contact', 'd.delivery': 'Delivery', 'd.address': 'Address', 'd.activity': 'Order activity', 'd.guests': 'guests', 'd.eathere': 'Eat here', 'd.pickup': 'Pickup',
       'pm.online': 'Card · Apple Pay · Google Pay', 'pm.swish': 'Swish', 'pm.pickup': 'In the restaurant',
@@ -75,7 +75,7 @@
       'ntf.order': '新订单 #{n}', 'ntf.orderBody': '{l} 项 · {sum} kr · 取餐 {t}', 'ntf.booking': '新预订', 'ntf.bookingBody': '{n} 人 · {d} {t}',
       'doc.order': '🔔 新订单 — Ichiban 厨房', 'doc.booking': '🔔 新预订 — Ichiban 厨房', 'doc.idle': 'Ichiban 厨房 — 订单',
       'hot.kitchen': '热厨',
-      'pause.title': '在线订单', 'pause.on': '正在接单', 'pause.off': '已暂停 — 不接在线订单', 'pause.btnPause': '暂停接单', 'pause.btnResume': '恢复接单', 'pause.msg': '给顾客的信息（可选）', 'pause.ph': '例如：我们很忙 — 稍后恢复接单！',
+      'pause.title': '在线订单', 'tab.menu': '菜单', 'menu.search': '搜索菜品…', 'menu.inStock': '有货', 'menu.soldOut': '售罄', 'menu.show': '显示', 'menu.hide': '隐藏', 'pause.on': '正在接单', 'pause.off': '已暂停 — 不接在线订单', 'pause.btnPause': '暂停接单', 'pause.btnResume': '恢复接单', 'pause.msg': '给顾客的信息（可选）', 'pause.ph': '例如：我们很忙 — 稍后恢复接单！',
       'tab.history': '历史', 'hist.search': '搜索编号、姓名、电话…', 'hist.all': '全部', 'hist.none': '未找到订单。',
       'd.placed': '下单', 'd.items': '商品', 'd.payment': '付款', 'd.subtotal': '小计', 'd.vat': '含增值税 (12%)', 'd.total': '合计', 'd.paidAmt': '已付金额', 'd.paidWith': '付款方式', 'd.ref': '付款编号', 'd.unpaidNote': '取餐时付款', 'd.contact': '联系', 'd.delivery': '取餐方式', 'd.address': '地址', 'd.activity': '订单记录', 'd.guests': '人', 'd.eathere': '堂食', 'd.pickup': '取餐',
       'pm.online': '银行卡 · Apple Pay · Google Pay', 'pm.swish': 'Swish', 'pm.pickup': '在餐厅',
@@ -116,6 +116,7 @@
   let es = null;
   let imgById = {}, allOrders = [], detailOrder = null, histQ = '', histSt = '';
   let pauseState = { orderingPaused: false, pauseMessage: '', pauseMessage_en: '' };
+  let menuData = null, menuQ = '';
 
   // ---------------- alarm (WebAudio — no sound file needed) ----------------
   let audioCtx = null;
@@ -218,6 +219,7 @@
   function render() {
     if (tab === 'hours') { renderHours(); return; }
     if (tab === 'history') { if (!$('h-q')) renderHistory(); return; }
+    if (tab === 'menu') { if (!$('m-q')) renderMenuTab(); return; }
     const list = $('list');
     if (tab === 'orders') {
       const active = ordersList.filter((o) => !['done', 'cancelled'].includes(o.status));
@@ -420,6 +422,51 @@
     if (fresh) openDetail(fresh); else closeDetail();
   }
 
+  // ---------------- menu editing (out of stock, price, hide) ----------------
+  async function saveItem(id, patch) { await api('/api/admin/menu/item', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...patch }) }); }
+  function mrow(it) {
+    const p = it.priceOverride != null ? it.priceOverride : it.price;
+    return `<div class="mrow ${it.soldOut ? 'is-sold' : ''} ${it.hidden ? 'is-hidden' : ''}" data-id="${esc(it.id)}">
+      ${it.img ? `<img src="/assets/img/menu/${esc(it.img)}" alt="" loading="lazy">` : ''}
+      <span class="mname">${it.hot ? '🔥 ' : ''}${esc(it.name)}</span>
+      <input class="mprice" type="number" min="0" value="${p}"><span class="mkr">kr</span>
+      <button class="mtog sold ${it.soldOut ? 'on' : ''}" data-act="sold">${it.soldOut ? t('menu.soldOut') : t('menu.inStock')}</button>
+      <button class="mtog hide ${it.hidden ? 'on' : ''}" data-act="hide">${it.hidden ? t('menu.show') : t('menu.hide')}</button>
+    </div>`;
+  }
+  function paintMenu() {
+    const res = $('m-results'); if (!res || !menuData) return;
+    const q = menuQ.toLowerCase();
+    res.className = 'mlist';
+    res.innerHTML = menuData.categories.map((c) => {
+      const items = c.items.filter((it) => !q || it.name.toLowerCase().includes(q));
+      return items.length ? `<h3>${esc(c.name)}</h3>` + items.map(mrow).join('') : '';
+    }).join('');
+  }
+  function renderMenuTab() {
+    list.innerHTML = `<div class="search-bar"><input id="m-q" placeholder="${t('menu.search')}" value="${esc(menuQ)}"></div><div id="m-results" class="mlist muted-center">…</div>`;
+    $('m-q').addEventListener('input', (e) => { menuQ = e.target.value; paintMenu(); });
+    (async () => { menuData = await api('/api/admin/menu'); paintMenu(); })();
+    if (!menuHandlersBound) { menuHandlersBound = true; $('list').addEventListener('click', onMenuClick); $('list').addEventListener('change', onMenuChange); }
+  }
+  let menuHandlersBound = false;
+  async function onMenuClick(e) {
+    const btn = e.target.closest('.mtog'); if (!btn) return;
+    const row = btn.closest('.mrow'); const id = row.dataset.id;
+    const it = menuData.categories.flatMap((c) => c.items).find((x) => x.id === id); if (!it) return;
+    if (btn.dataset.act === 'sold') { it.soldOut = !it.soldOut; await saveItem(id, { soldOut: it.soldOut }); }
+    else { it.hidden = !it.hidden; await saveItem(id, { hidden: it.hidden }); }
+    paintMenu();
+  }
+  async function onMenuChange(e) {
+    const inp = e.target.closest('input.mprice'); if (!inp) return;
+    const row = inp.closest('.mrow'); const id = row.dataset.id;
+    const it = menuData.categories.flatMap((c) => c.items).find((x) => x.id === id); if (!it) return;
+    const val = inp.value === '' ? null : Math.max(0, parseInt(inp.value, 10) || 0);
+    it.priceOverride = val;
+    await saveItem(id, { price: val });
+  }
+
   // ---------------- order history (search + filter) ----------------
   function histRow(o) {
     const st = o.refunded ? t('st.refunded') : (L.sv['st.' + o.status] ? t('st.' + o.status) : o.status);
@@ -452,7 +499,7 @@
   }
 
   // tabs
-  const TABS = ['orders', 'bookings', 'hours', 'history'];
+  const TABS = ['orders', 'bookings', 'hours', 'history', 'menu'];
   TABS.forEach((t) => $('tab-' + t).addEventListener('click', () => {
     tab = t;
     TABS.forEach((x) => $('tab-' + x).classList.toggle('active', x === t));

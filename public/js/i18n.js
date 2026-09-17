@@ -35,6 +35,7 @@
     'Öppna i Google Maps →': 'Open in Google Maps →',
     'Vi håller stängt den dagen — välj ett annat datum.': 'We are closed that day — please pick another date.',
     'Vi håller stängt den dagen.': 'We are closed that day.',
+    'Slut': 'Sold out',
     'Mån–tor': 'Mon–Thu', 'Fredag': 'Friday', 'Lördag': 'Saturday', 'Söndag': 'Sunday',
     'E-post': 'Email', 'Sidor': 'Pages',
     'Spårvagn till hållplats Getebergsäng — 2 minuters promenad.': 'Tram to Getebergsäng — a 2-minute walk.',

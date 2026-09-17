@@ -390,6 +390,11 @@ section.block.tight { padding: 3rem 0; }
 .notice { background: rgba(226,177,60,0.12); border: 1px solid rgba(226,177,60,0.5); color: var(--ink); border-radius: 10px; padding: 0.8rem 1.1rem; margin-top: 1.4rem; font-size: 0.95rem; line-height: 1.5; }
 .notice a { color: var(--gold); font-weight: 600; }
 .notice[hidden] { display: none; }
+/* sold-out (86'd) menu items */
+.soldout-badge { display: inline-block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #fff; background: var(--aka); border-radius: 999px; padding: 0.12rem 0.6rem; vertical-align: middle; }
+.order-item.soldout, .dish-card.soldout, .menu-line.soldout { opacity: 0.5; }
+.order-item.soldout img, .dish-card.soldout .photo { filter: grayscale(1); }
+.order-item.soldout .pr { text-decoration: line-through; }
 
 /* closed-days lightbox (site.js) */
 .lightbox { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 1.2rem; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); opacity: 0; transition: opacity .25s; }
