@@ -536,6 +536,7 @@ function createOrder(body) {
     broadcast('order', publicAdminOrder(order));
     if (dineIn) broadcast('reservation-status', { id: order.reservationId, status: 'confirmed' });
     sendReceipt(order); // confirmation with receipt link (email/sms if configured)
+    notifyStaffOrder(order); // alert the company inbox
   }
   console.log(`ORDER #${order.number} (${order.serviceType}/${order.paymentMethod}) ${name} ${phone} — ${total} kr @ ${pickupDate} ${pickupTime}${dineIn ? ` · ${guests} gäster` : ''}`);
   return order;
@@ -564,6 +565,7 @@ function markOrderPaid(orderId, paymentIntent, swishRef) {
   saveJson('orders.json', orders);
   broadcast('order', publicAdminOrder(o)); // now the kitchen alarm rings
   sendReceipt(o);
+  notifyStaffOrder(o); // alert the company inbox once payment is in
   console.log(`PAID   #${o.number} — ${o.total} kr (Stripe)`);
 }
 
@@ -597,6 +599,39 @@ function httpsJson(hostname, apiPath, headers, body) {
   });
 }
 
+// company inbox that gets an alert on every new order/booking (like Wix's staff email)
+const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || '';
+const esc2 = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function staffEmail(subject, html) {
+  if (!RESEND_API_KEY || !NOTIFY_EMAIL) return; // needs Resend + a company inbox configured
+  const body = JSON.stringify({ from: RECEIPT_FROM, to: NOTIFY_EMAIL.split(',').map((s) => s.trim()).filter(Boolean), subject, html });
+  httpsJson('api.resend.com', '/emails', { Authorization: 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }, body)
+    .then(() => console.log('STAFF NOTIFY:', subject)).catch((e) => console.error('staff notify failed:', e.message));
+}
+function notifyStaffOrder(o) {
+  const rows = o.lines.map((l) => `<tr><td style="padding:4px 0">${l.hot ? '🔥 ' : ''}${l.qty} × ${esc2(l.name)}${l.option ? ' · ' + esc2(l.option) : ''}</td><td align="right">${l.lineTotal} kr</td></tr>`).join('');
+  const type = o.serviceType === 'dinein' ? `Ät här · ${o.guests} gäster · ankomst ${esc2(o.pickup.time)}` : `Avhämtning ${esc2(o.pickup.time)}`;
+  staffEmail(`Ny beställning #${pad3(o.number)} — ${o.total} kr`, `<div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;color:#222">
+    <h2 style="margin:0 0 4px">Ny beställning #${pad3(o.number)}</h2>
+    <p style="margin:0 0 12px;color:#666">${type} · ${o.paid ? 'BETALD ONLINE' : 'Betalas vid avhämtning'}</p>
+    <table width="100%" style="border-top:1px solid #ddd;border-bottom:1px solid #ddd;font-size:14px;margin-bottom:10px">${rows}
+      <tr><td style="padding-top:6px;font-weight:bold">Summa</td><td align="right" style="padding-top:6px;font-weight:bold">${o.total} kr</td></tr></table>
+    <p style="font-size:14px">${esc2(o.customer.name)} · ${esc2(o.customer.phone)}${o.note ? `<br>✎ ${esc2(o.note)}` : ''}</p>
+    <p><a href="${BASE_URL}/admin" style="background:#8a0018;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;display:inline-block">Öppna köksskärmen</a></p></div>`);
+}
+function notifyStaffBooking(r) {
+  staffEmail(`Ny bokning — ${r.guests} personer ${esc2(r.date)} ${esc2(r.time)}`, `<div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;color:#222">
+    <h2 style="margin:0 0 4px">Ny bordsbokning</h2>
+    <p style="font-size:15px;margin:0 0 10px">${esc2(r.name)} har bokat ett bord.</p>
+    <table style="font-size:14px">
+      <tr><td style="padding:2px 14px 2px 0;color:#666">Antal personer</td><td>${r.guests}</td></tr>
+      <tr><td style="padding:2px 14px 2px 0;color:#666">Datum</td><td>${esc2(r.date)}</td></tr>
+      <tr><td style="padding:2px 14px 2px 0;color:#666">Tid</td><td>${esc2(r.time)}</td></tr>
+      <tr><td style="padding:2px 14px 2px 0;color:#666">Telefon</td><td>${esc2(r.phone)}</td></tr>
+      ${r.email ? `<tr><td style="padding:2px 14px 2px 0;color:#666">E-post</td><td>${esc2(r.email)}</td></tr>` : ''}
+      ${r.note ? `<tr><td style="padding:2px 14px 2px 0;color:#666">Meddelande</td><td>${esc2(r.note)}</td></tr>` : ''}</table>
+    <p style="margin-top:12px"><a href="${BASE_URL}/admin" style="background:#8a0018;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;display:inline-block">Öppna köksskärmen</a></p></div>`);
+}
 function receiptHtml(o) {
   const en = o.lang === 'en';
   const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -713,6 +748,7 @@ function createReservation(body) {
   reservations.push(r);
   saveJson('reservations.json', reservations);
   broadcast('reservation', r);
+  notifyStaffBooking(r); // alert the company inbox
   console.log(`RESERVATION ${name} ${guests}p @ ${date} ${time}`);
   return r;
 }

@@ -350,3 +350,30 @@ a safety net. Refund also broadcasts so the customer sees "Refunded" at once.
 21 smoke tests pass (added history/search + activity-log coverage). Also fixed a
 latent test bug: `nextFullDay()` could land outside the 2-day pickup window on
 Thu/Fri, so pickup-order tests now fetch a real slot — CI is day-of-week robust.
+
+## 2026-09-17 (cont.) — Wix-parity build: pause, menu editor, staff email alerts
+
+Working through the Wix Restaurants feature set the owner uses daily (skipping
+SEO/marketing per their steer).
+
+- **Pause online orders** — one-tap toggle in the Öppettider tab (tri-lingual)
+  with an optional customer message; server 503s new orders while paused;
+  /bestall shows the message and hides checkout. In settings.json.
+- **Menu editor / out-of-stock (86)** — new Meny tab: per-item In stock/Slut,
+  editable price, Hide. Overrides live in data/menu-overrides.json (survives
+  deploys; menu.json stays canonical). Site greys out sold-out dishes, blocks
+  ordering them, and honours override prices.
+- **Company email alerts** — new order and new booking now email the company
+  inbox (NOTIFY_EMAIL), like Wix's "Du har en ny bokning". Needs RESEND_API_KEY
+  + NOTIFY_EMAIL set on the VPS (a verified sender domain on resend.com); silently
+  skipped otherwise, same as customer receipts. Kitchen also still gets the live
+  alarm + browser notification.
+
+**Owner setup to turn emails on:** resend.com account → verify ichiban.biz →
+API key; then in /opt/ichiban/.env set RESEND_API_KEY, RECEIPT_FROM
+(e.g. "Ichiban Sushi <no-reply@ichiban.biz>"), NOTIFY_EMAIL (company inbox),
+and restart. Same key powers customer receipts.
+
+23 smoke tests pass. Remaining Wix items to scope: POS/kassa, kitchen thermal
+printing (needs printer model), tips/service-fee/tax at checkout, partial
+refunds, coupons/loyalty/gift cards (marketing — likely skip).
